@@ -9,6 +9,6 @@ export class AnalyserService {
     async analyse() {
         const demo = this.loadingService.loadDemo()
         const parsed = await this.parsingService.parseDemo(demo)
-        parsed.logRounds()
+        parsed.print()
     }
 }

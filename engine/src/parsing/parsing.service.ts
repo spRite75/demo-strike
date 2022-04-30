@@ -22,10 +22,16 @@ export class ParsingService {
 
       const getTime = () => demoFile.currentTime
 
-      demoFile.gameEvents.on("round_start", (e) => {
+      demoFile.gameEvents.on("round_start", () => {
         if (!demoFile.gameRules.isWarmup) {
-        demoState = { ...demoState, roundNumber: demoFile.gameRules.roundsPlayed + 1};
+          demoState = { ...demoState, roundNumber: demoFile.gameRules.roundsPlayed + 1};
         }
+
+        match.recordEvent(demoState.roundNumber, {
+          eventKind: "RoundStartEvent",
+          eventTime: getTime(),
+          roundNumber: demoState.roundNumber
+        })
       });
 
       demoFile.gameEvents.on('player_death', (e) => {
@@ -51,13 +57,16 @@ export class ParsingService {
           eventKind: 'BombPlantedEvent',
           eventTime: getTime(),
           planter: { steamId: e.player.steamId, name: e.player.name },
+          location: e.player.placeName
         });
       });
 
-      demoFile.gameEvents.on("round_officially_ended", () => {
+      demoFile.gameEvents.on("round_end", (e) => {
         match.recordEvent(demoState.roundNumber, {
             eventKind: "RoundEndEvent",
-            eventTime: getTime()
+            eventTime: getTime(),
+            phase: demoFile.gameRules.phase,
+            reason: e.reason.toString()
         });
       });
 
@@ -74,7 +83,7 @@ export class ParsingService {
           process.exitCode = 1;
         }
 
-        console.log('Finished.');
+        
 
         // Here's where we return the built up match object
         resolve(match);
