@@ -8,9 +8,12 @@ import { TeamLetter } from 'src/models/team-letter';
 export class ParsingService {
   private getTeamLetter(teamNumber?: number): TeamLetter {
     switch (teamNumber) {
-        case 2: return "T"
-        case 3: return "CT"
-        default: return "???"
+      case 2:
+        return 'T';
+      case 3:
+        return 'CT';
+      default:
+        return '???';
     }
   }
 
@@ -20,18 +23,43 @@ export class ParsingService {
       let demoState = { roundNumber: 0 };
       const demoFile = new DemoFile();
 
-      const getTime = () => demoFile.currentTime
+      const getTime = () => demoFile.currentTime;
 
-      demoFile.gameEvents.on("round_start", () => {
+      demoFile.gameEvents.on('player_connect_full', (e) => {
+        const {
+          player: { steamId, name, team },
+        } = e;
+        const teamId = team?.handle;
+        if (!teamId) return;
+        match.addPlayer(steamId, name);
+      });
+
+      demoFile.gameEvents.on('round_start', () => {
         if (!demoFile.gameRules.isWarmup) {
-          demoState = { ...demoState, roundNumber: demoFile.gameRules.roundsPlayed + 1};
+          demoState = {
+            ...demoState,
+            roundNumber: demoFile.gameRules.roundsPlayed + 1,
+          };
         }
 
+        demoFile.players.forEach((demoPlayer) => {
+          const matchPlayer = match.players.find(
+            (p) => p.steamId === demoPlayer.steamId,
+          );
+          if (!matchPlayer) return;
+
+          // Update player team
+          matchPlayer.setTeam(
+            demoFile.gameRules.phase,
+            this.getTeamLetter(demoPlayer.teamNumber),
+          );
+        });
+
         match.recordEvent(demoState.roundNumber, {
-          eventKind: "RoundStartEvent",
+          eventKind: 'RoundStartEvent',
           eventTime: getTime(),
-          roundNumber: demoState.roundNumber
-        })
+          roundNumber: demoState.roundNumber,
+        });
       });
 
       demoFile.gameEvents.on('player_death', (e) => {
@@ -57,23 +85,34 @@ export class ParsingService {
           eventKind: 'BombPlantedEvent',
           eventTime: getTime(),
           planter: { steamId: e.player.steamId, name: e.player.name },
-          location: e.player.placeName
+          location: e.player.placeName,
         });
       });
 
-      demoFile.gameEvents.on("round_end", (e) => {
+      demoFile.gameEvents.on('round_end', (e) => {
+        demoFile.players.forEach((demoPlayer) => {
+          const matchPlayer = match.players.find(
+            (p) => p.steamId === demoPlayer.steamId,
+          );
+          if (!matchPlayer) return;
+
+          // Save player scores
+          const { kills, assists, deaths, score } = demoPlayer;
+          matchPlayer.setScores({ kills, assists, deaths, score });
+        });
+
         match.recordEvent(demoState.roundNumber, {
-            eventKind: "RoundEndEvent",
-            eventTime: getTime(),
-            phase: demoFile.gameRules.phase,
-            reason: e.reason.toString()
+          eventKind: 'RoundEndEvent',
+          eventTime: getTime(),
+          phase: demoFile.gameRules.phase,
+          reason: e.reason.toString(),
         });
       });
 
-      demoFile.gameEvents.on("round_officially_ended", () => {
+      demoFile.gameEvents.on('round_officially_ended', () => {
         match.recordEvent(demoState.roundNumber, {
-            eventKind: "RoundOfficialEndEvent",
-            eventTime: getTime()
+          eventKind: 'RoundOfficialEndEvent',
+          eventTime: getTime(),
         });
       });
 
@@ -83,7 +122,20 @@ export class ParsingService {
           process.exitCode = 1;
         }
 
-        
+        // Create teams
+        demoFile.teams.forEach((team) => {
+          const teamLetter = this.getTeamLetter(team.teamNumber);
+          if (teamLetter === '???') return;
+
+          match.addTeam(teamLetter, {
+            firstHalf: team.scoreFirstHalf,
+            secondHalf: team.scoreSecondHalf,
+            total: team.score,
+          });
+        });
+
+        // Do any finalisation on the match object
+        match.finalise()
 
         // Here's where we return the built up match object
         resolve(match);

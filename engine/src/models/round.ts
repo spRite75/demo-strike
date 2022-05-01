@@ -2,8 +2,15 @@ import { RoundEvent } from "./events"
 
 export class Round {
     private events: RoundEvent[] = []
-
     constructor(public readonly roundNumber: number) {}
+
+    public get durationSeconds(): string | undefined {
+        const start = this.events.find(e => e.eventKind === "RoundStartEvent")
+        const end = this.events.find(e => e.eventKind === "RoundEndEvent")
+
+        if (!start || !end) return undefined
+        return (end.eventTime - start.eventTime).toFixed(2)
+    }
 
     addEvent(event: RoundEvent) {
         this.events.push(event)
