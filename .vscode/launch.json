@@ -5,13 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach by Process ID",
-            "processId": "${command:PickProcess}",
+            "type": "node",
             "request": "attach",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node"
-        },
+            "name": "Debug",
+            "port": 9229
+        }
     ]
 }

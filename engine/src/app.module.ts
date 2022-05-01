@@ -8,12 +8,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(`${process.env.MONGODB_URL}`, {
-      auth: {
-        username: process.env.MONGODB_USER,
-        password: process.env.MONGODB_PASSWORD,
-      },
-    }),
+    // MongooseModule.forRoot(`${process.env.MONGODB_URL}`, {
+    //   auth: {
+    //     username: process.env.MONGODB_USER,
+    //     password: process.env.MONGODB_PASSWORD,
+    //   },
+    // }),
   ],
   controllers: [AppController],
   providers: [AppService, ParsingService, LoadingService, AnalyserService],
