@@ -3,10 +3,17 @@ import { RoundEvent } from './events';
 import { Round } from './round';
 import { Player } from './player';
 import { TeamLetter } from './team-letter';
+import { Prop, Schema } from '@nestjs/mongoose';
 
+@Schema()
 export class Match {
+  @Prop()
   players: Player[] = [];
+
+  @Prop()
   teams: Team[] = [];
+
+  @Prop()
   rounds: Round[] = [];
 
   addPlayer(steamId: string, displayName: string) {

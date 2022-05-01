@@ -4,13 +4,15 @@ import { AppService } from './app.service';
 import { ParsingService } from './parsing/parsing.service';
 import { LoadingService } from './loading/loading.service';
 import { AnalyserService } from './analyser/analyser.service';
-import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      envFilePath: `.${process.env.ACTIVE_PROFILE || 'local'}.env`,
-      ignoreEnvFile: process.env.ACTIVE_PROFILE === 'live'
+    MongooseModule.forRoot(`${process.env.MONGODB_URL}`, {
+      auth: {
+        username: process.env.MONGODB_USER,
+        password: process.env.MONGODB_PASSWORD,
+      },
     }),
   ],
   controllers: [AppController],
