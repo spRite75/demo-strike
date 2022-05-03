@@ -2,24 +2,34 @@
   "name": "functions",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
-    "build": "tsc",
-    "build:watch": "tsc -w",
+    "build:copy-graphql-schema": "mkdir -p lib/graphql && cp src/graphql/schema.graphql lib/graphql/schema.graphql",
+    "build": "npm run build:copy-graphql-schema && npm run graphql-codegen && tsc",
+    "build:watch": "npm run build:copy-graphql-schema && npm run graphql-codegen && tsc -w",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "graphql-codegen": "graphql-codegen --config src/graphql/graphql-codegen.yml"
   },
   "engines": {
     "node": "16"
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@graphql-tools/graphql-file-loader": "^7.3.11",
+    "@graphql-tools/load": "^7.5.10",
+    "apollo-server-cloud-functions": "^3.6.7",
     "busboy": "^1.6.0",
     "firebase-admin": "^10.0.2",
-    "firebase-functions": "^3.18.0"
+    "firebase-functions": "^3.18.0",
+    "graphql": "^16.4.0"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "2.6.2",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/typescript": "2.4.8",
+    "@graphql-codegen/typescript-resolvers": "2.6.1",
     "@types/busboy": "^1.5.0",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",

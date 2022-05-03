@@ -1,5 +1,5 @@
-import { handler as demoUpload } from "./demo-upload"
+import { handler as graphql } from "./graphql"
 
 module.exports = {
-    demoUpload
+    graphql
 }
