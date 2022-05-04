@@ -1,20 +1,15 @@
-import { FirebaseApp, initializeApp, getApp } from "firebase/app";
+import { FirebaseOptions, getApp, initializeApp } from "firebase/app";
 import {
-  getAuth,
-  EmailAuthProvider,
+  browserSessionPersistence,
   connectAuthEmulator,
-  setPersistence,
-  browserLocalPersistence,
-  Auth,
+  EmailAuthProvider,
+  initializeAuth,
 } from "firebase/auth";
 import * as firebaseui from "firebaseui";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { createContext } from "react";
 
-console.log("SETUP RUN");
-
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyBkg3VmuoUYLlrUnvcm-lwFHSMfsn0T-Ns",
   authDomain: "csgo-demo-analyser.firebaseapp.com",
   projectId: "csgo-demo-analyser",
@@ -22,16 +17,6 @@ const firebaseConfig = {
   messagingSenderId: "623562071555",
   appId: "1:623562071555:web:ad4e0c4b5d50203a947836",
 };
-
-// Initialise Firebase
-initializeApp(firebaseConfig);
-
-// Initialise Auth
-// TODO: disable this when not on localhost
-connectAuthEmulator(getAuth(), "http://localhost:9099");
-
-// Initialise Firebase UI
-const firebaseUi = new firebaseui.auth.AuthUI(getAuth());
 
 const firebaseUiConfig: firebaseui.auth.Config = {
   signInOptions: [
@@ -41,17 +26,33 @@ const firebaseUiConfig: firebaseui.auth.Config = {
       whitelistedCountries: ["Australia"],
     },
   ],
-  signInSuccessUrl: "/"
+  signInSuccessUrl: "/",
 };
 
-class Firebase {
-  initiateSignIn() {
-    setPersistence(getAuth(), browserLocalPersistence).then(() =>
-      firebaseUi.start("#firebaseui-auth-container", firebaseUiConfig)
-    );
+export class Firebase {
+  private readonly app = initializeApp(firebaseConfig);
+  private readonly auth = initializeAuth(this.app, {
+    persistence: browserSessionPersistence,
+  });
+  private readonly ui: firebaseui.auth.AuthUI;
+
+  constructor() {
+    connectAuthEmulator(this.auth, "http://localhost:9099");
+    this.ui = new firebaseui.auth.AuthUI(this.auth);
+  }
+
+  getAuth() {
+    return this.auth;
+  }
+
+  signIn() {
+    this.ui.start("#firebaseui-auth-container", firebaseUiConfig);
+  }
+
+  signOut() {
+    return this.auth.signOut()
   }
 }
 
-const firebase = new Firebase();
-
-export { firebase };
+export const firebase = new Firebase();
+export const FirebaseContext = createContext(firebase);

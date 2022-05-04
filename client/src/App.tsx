@@ -1,36 +1,28 @@
 import React, { useEffect } from "react";
-import logo from "./logo.svg";
-import "./App.css";
 
-import { firebase } from "./firebase";
-import { getAuth } from "firebase/auth";
-import { useAuthState } from "react-firebase-hooks/auth";
-
-import { Button } from "./components/Button";
-import { useGetHelloQuery } from "./generated/graphql";
-
+import { useIsAuthed } from "./hooks/useIsAuthed";
+import { useProfile } from "./hooks/useProfile";
+import { Header } from "./sections/Header";
 
 function App() {
-  const [user] = useAuthState(getAuth());
-  const { data, loading} = useGetHelloQuery();
-  const signIn = () => firebase.initiateSignIn();
+  const isAuthed = useIsAuthed();
+  const { loading, data } = useProfile();
+
+  const displayName = data?.displayName;
 
   return (
-    <div className="hero min-h-screen bg-base-200">
-      <div className="hero-content text-center">
-        <div className="max-w-md">
-          <h1 className="text-5xl font-bold">Welcome to Demo Strike</h1>
-          <p className="py-6">
-            {loading ? "Loading data..." : data?.hello}
-          </p>
-          {user ? (
-            <span>Welcome {user.displayName || "<unknown>"}</span>
-          ) : (
-            <Button action={signIn}>Sign in</Button>
-          )}
+    <>
+      <Header />
+      <div className="hero min-h-screen bg-base-200">
+        <div className="hero-content text-center">
+          <div className="max-w-md">
+            <h1 className="text-5xl font-bold">Welcome to Demo Strike</h1>
+            <p className="py-6">{loading && "Loading data..."}</p>
+            {isAuthed && <span>Welcome {displayName || "<unknown>"}</span>}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

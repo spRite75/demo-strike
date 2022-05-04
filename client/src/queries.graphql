@@ -1,3 +1,9 @@
 query GetHello {
   hello
 }
+
+query GetProfile {
+  profile {
+    displayName
+  }
+}

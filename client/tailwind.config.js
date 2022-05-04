@@ -1,9 +1,9 @@
 module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
+  content: [],
+  safelist: [
+    {
+      pattern: /./
+    },
   ],
-  theme: {
-    extend: {},
-  },
   plugins: [require('daisyui')],
 }

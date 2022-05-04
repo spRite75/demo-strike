@@ -1,3 +1,13 @@
 type Query {
-  hello: String
+  hello: String!
+  profile: UserProfile
+}
+
+type Mutation {
+  createProfile(displayName: String!): UserProfile!
+}
+
+type UserProfile {
+  displayName: String!
+  steamId: String
 }

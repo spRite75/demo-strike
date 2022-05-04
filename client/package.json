@@ -16,6 +16,7 @@
     "firebaseui": "^6.0.1",
     "graphql": "^16.4.0",
     "react": "^18.1.0",
+    "react-daisyui": "^2.0.1",
     "react-dom": "^18.1.0",
     "react-firebase-hooks": "^5.0.3",
     "react-scripts": "5.0.1",
@@ -50,15 +51,15 @@
     ]
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "2.6.2",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/typescript": "2.4.8",
+    "@graphql-codegen/typescript-operations": "2.3.5",
+    "@graphql-codegen/typescript-react-apollo": "3.2.11",
     "@jagannathbhat/cra-build-watch": "1.0.1",
     "autoprefixer": "^10.4.6",
     "daisyui": "^2.14.3",
     "postcss": "^8.4.13",
-    "tailwindcss": "^3.0.24",
-    "@graphql-codegen/cli": "2.6.2",
-    "@graphql-codegen/typescript-react-apollo": "3.2.11",
-    "@graphql-codegen/typescript-operations": "2.3.5",
-    "@graphql-codegen/typescript": "2.4.8",
-    "@graphql-codegen/introspection": "2.1.1"
+    "tailwindcss": "^3.0.24"
   }
 }

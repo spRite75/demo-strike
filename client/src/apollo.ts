@@ -2,18 +2,21 @@ import {
   ApolloClient,
   InMemoryCache,
   ApolloLink,
-  HttpLink,
   concat,
+  createHttpLink
 } from "@apollo/client";
-import { getAuth } from "firebase/auth";
+import { setContext } from '@apollo/client/link/context';
 
-const httpLink = new HttpLink({ uri: "/graphql" });
+import { Firebase } from "./firebase";
 
-const authMiddleware = new ApolloLink((operation, forward) => {
-  // add the authorization to the headers
-  operation.setContext(({ headers = {} }) => {
-    const user = getAuth().currentUser;
-    const authorization = user ? user.getIdToken() : null
+export function getApolloClient(firebase: Firebase){
+  const httpLink = createHttpLink({
+    uri: '/graphql',
+  });
+
+  const authLink = setContext(async (_, { headers }) => {
+    const user = firebase.getAuth().currentUser;
+    const authorization = user ? await user.getIdToken() : "";
 
     return {
       headers: {
@@ -22,11 +25,9 @@ const authMiddleware = new ApolloLink((operation, forward) => {
       },
     };
   });
-  return forward(operation);
-});
 
-export const apolloClient = new ApolloClient({
-  uri: "/graphql",
-  cache: new InMemoryCache(),
-  link: concat(authMiddleware, httpLink),
-});
+  return new ApolloClient({
+    link: authLink.concat(httpLink),
+    cache: new InMemoryCache(),
+  });
+}
