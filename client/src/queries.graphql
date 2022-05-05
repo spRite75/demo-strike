@@ -4,6 +4,7 @@ query GetHello {
 
 query GetProfile {
   profile {
+    id
     displayName
   }
 }

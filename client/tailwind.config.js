@@ -2,8 +2,8 @@ module.exports = {
   content: [],
   safelist: [
     {
-      pattern: /./
+      pattern: /./,
     },
   ],
-  plugins: [require('daisyui')],
-}
+  plugins: [require("@tailwindcss/typography"), require("daisyui")],
+};

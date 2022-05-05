@@ -4,10 +4,15 @@ type Query {
 }
 
 type Mutation {
-  createProfile(displayName: String!): UserProfile!
+  createProfile(input: CreateProfileInput!): UserProfile!
+}
+
+input CreateProfileInput {
+    displayName: String!
 }
 
 type UserProfile {
+  id: ID!
   displayName: String!
   steamId: String
 }
