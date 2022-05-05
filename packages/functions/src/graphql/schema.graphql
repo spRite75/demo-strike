@@ -1,0 +1,40 @@
+scalar Date # date will serialise as epoch milliseconds
+directive @flagged(requires: JwtFlag!) on OBJECT | FIELD_DEFINITION
+
+enum JwtFlag {
+  HAS_PROFILE
+}
+
+type Query {
+  hello: String!
+  profile: UserProfile
+}
+
+type Mutation {
+  createProfile(input: CreateProfileInput!): UserProfile!
+  uploadDemos(input: UploadDemosInput!): UploadDemosResult!
+    @flagged(requires: HAS_PROFILE)
+}
+
+input CreateProfileInput {
+  displayName: String!
+}
+
+type UserProfile {
+  id: ID!
+  displayName: String!
+  steamId: String
+}
+
+input UploadDemosInput {
+  demos: [DemoInput!]!
+}
+
+input DemoInput {
+  filePath: String!
+  lastModified: Date!
+}
+
+type UploadDemosResult {
+  filenames: [String!]!
+}

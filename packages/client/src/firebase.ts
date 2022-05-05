@@ -1,10 +1,11 @@
-import { FirebaseOptions, getApp, initializeApp } from "firebase/app";
+import { FirebaseOptions, initializeApp } from "firebase/app";
 import {
   browserSessionPersistence,
   connectAuthEmulator,
   EmailAuthProvider,
   initializeAuth,
 } from "firebase/auth";
+import { getStorage, connectStorageEmulator, ref } from "firebase/storage";
 import * as firebaseui from "firebaseui";
 
 import { createContext } from "react";
@@ -34,10 +35,12 @@ export class Firebase {
   private readonly auth = initializeAuth(this.app, {
     persistence: browserSessionPersistence,
   });
+  private readonly storage = getStorage();
   private readonly ui: firebaseui.auth.AuthUI;
 
   constructor() {
     connectAuthEmulator(this.auth, "http://localhost:9099");
+    connectStorageEmulator(this.storage, "localhost", 9199);
     this.ui = new firebaseui.auth.AuthUI(this.auth);
   }
 
@@ -50,7 +53,12 @@ export class Firebase {
   }
 
   signOut() {
-    return this.auth.signOut()
+    return this.auth.signOut();
+  }
+
+  getStorageRef(fileName: string) {
+    const filePath = `demos/u/${this.auth.currentUser?.uid}/o/${fileName}`;
+    return ref(this.storage, filePath);
   }
 }
 

@@ -1,0 +1,22 @@
+{
+  "name": "demo-strike",
+  "version": "1.0.0",
+  "description": "A project to parse CSGO Demos and provide insights into history and stats.",
+  "workspaces": [
+    "packages/client",
+    "packages/functions"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spRite75/demo-strike.git"
+  },
+  "author": "Luke Montgomery",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/spRite75/demo-strike/issues"
+  },
+  "homepage": "https://github.com/spRite75/demo-strike#readme"
+}

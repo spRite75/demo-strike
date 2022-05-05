@@ -19,6 +19,7 @@
   "dependencies": {
     "@graphql-tools/graphql-file-loader": "^7.3.11",
     "@graphql-tools/load": "^7.5.10",
+    "@graphql-tools/utils": "^8.6.9",
     "apollo-server-cloud-functions": "^3.6.7",
     "busboy": "^1.6.0",
     "firebase-admin": "^10.0.2",

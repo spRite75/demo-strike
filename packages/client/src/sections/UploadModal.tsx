@@ -1,17 +1,27 @@
 import { useCallback, useState } from "react";
 import { Button, Divider, Modal } from "react-daisyui";
 import { DropzoneOptions, useDropzone } from "react-dropzone";
+import { useUploadFile } from "react-firebase-hooks/storage";
 import filesize from "filesize";
+import { useFirebase } from "../hooks/useFirebase";
 
 export function UploadModal(props: { show: boolean; close: () => void }) {
   const { show, close } = props;
+  const firebase = useFirebase();
+  const [upload] = useUploadFile();
   const [files, setFiles] = useState<File[]>([]);
 
   const cancel = () => {
     setFiles([]);
     close();
   };
-  const accept = () => close();
+  const accept = async () => {
+    await upload(
+      firebase.getStorageRef(files[0].name),
+      await files[0].arrayBuffer()
+    );
+    close();
+  };
 
   const onDrop = useCallback<NonNullable<DropzoneOptions["onDrop"]>>(
     (acceptedFiles) => {

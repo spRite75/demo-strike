@@ -2,6 +2,7 @@ import { Resolvers } from "./generated/graphql";
 import { Context } from ".";
 import { Profile, profileCollection } from "./models/profile";
 import * as functions from "firebase-functions";
+import * as authClaims from "../authClaims";
 
 export const resolvers: Resolvers<Context> = {
   Query: {
@@ -20,7 +21,12 @@ export const resolvers: Resolvers<Context> = {
       if (!displayName) throw new Error("Display name is required");
 
       const profile = new Profile({ id: uid, displayName });
-      const writeResult = await profileCollection().doc(profile.id).set(profile);
+      const writeResult = await profileCollection()
+        .doc(profile.id)
+        .set(profile);
+
+      await authClaims.hasProfile.set(uid);
+
       functions.logger.log(
         `Created profile for ${displayName} (uid: ${uid}) at ${writeResult.writeTime
           .toDate()

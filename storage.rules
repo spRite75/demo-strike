@@ -1,8 +1,13 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+  	match /demos/u/{userId}/o {
+    	match /{fileName} {
+      	allow write: if request.auth.uid == userId && request.auth.token.hasProfile == true
+      }
+    }
     match /{allPaths=**} {
-      allow read, write: if request.auth!=null;
+      allow read, write: if false;
     }
   }
 }
