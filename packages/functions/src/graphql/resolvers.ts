@@ -1,17 +1,27 @@
 import { Resolvers } from "./generated/graphql";
 import { Profile, profileCollection } from "./models/profile";
 import * as functions from "firebase-functions";
-import * as authClaims from "../authClaims";
+import { authUser } from "../authUser";
 
 export const resolvers: Resolvers = {
   Query: {
-    hello: (a, b, { profile }) => {
+    hello: async (a, b, { uid }) => {
+      const profile =
+        !!uid &&
+        (await profileCollection()
+          .doc(uid)
+          .get()
+          .then((doc) => doc.data()));
       const person = profile ? profile.displayName : "stranger";
       return `Hello ${person}!`;
     },
-    profile: (a, b, { profile }) => {
-      if (!profile) return null;
-      return profile;
+    profile: async (a, b, { uid }) => {
+      if (!uid) return null;
+      const profile = await profileCollection()
+        .doc(uid)
+        .get()
+        .then((doc) => doc.data());
+      return profile || null;
     },
   },
   Mutation: {
@@ -24,7 +34,8 @@ export const resolvers: Resolvers = {
         .doc(profile.id)
         .set(profile);
 
-      await authClaims.hasProfile.set(uid);
+      const user = authUser.uid(uid);
+      await Promise.all([user.flags.hasProfile.set(), user.roles.add("user")]);
 
       functions.logger.log(
         `Created profile for ${displayName} (uid: ${uid}) at ${writeResult.writeTime
