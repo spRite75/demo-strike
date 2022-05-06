@@ -1,10 +1,13 @@
-.PHONY: install graphql-codegen start-local
+.PHONY: install generate start-local
 
 install:
-	(cd functions && npm i) & (cd client && npm i)
+	npm i
 
-graphql-codegen:
-	(cd functions && npm run graphql-codegen) & (cd client && npm run graphql-codegen) 
+build:
+	npm run build
+
+generate:
+	npm run generate
 
 start-local:
 	firebase emulators:start --import .emulatordata --export-on-exit

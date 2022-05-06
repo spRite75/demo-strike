@@ -7,7 +7,10 @@
     "packages/functions"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate": "graphql-codegen --config codegen.yml",
+    "build": "npm run generate && npm run build -ws",
+    "watch": "npm run generate && concurrently -k -c blue,bgBlue -n REACT,FUNCTIONS \"npm run watch -w packages/client\" \"npm run build:watch -w packages/functions\""
   },
   "repository": {
     "type": "git",
@@ -18,5 +21,15 @@
   "bugs": {
     "url": "https://github.com/spRite75/demo-strike/issues"
   },
-  "homepage": "https://github.com/spRite75/demo-strike#readme"
+  "homepage": "https://github.com/spRite75/demo-strike#readme",
+  "devDependencies": {
+    "@graphql-codegen/cli": "2.6.2",
+    "@graphql-codegen/fragment-matcher": "3.2.1",
+    "@graphql-codegen/introspection": "2.1.1",
+    "@graphql-codegen/typescript": "2.4.10",
+    "@graphql-codegen/typescript-operations": "2.3.7",
+    "@graphql-codegen/typescript-react-apollo": "3.2.13",
+    "@graphql-codegen/typescript-resolvers": "2.6.3",
+    "concurrently": "^7.1.0"
+  }
 }

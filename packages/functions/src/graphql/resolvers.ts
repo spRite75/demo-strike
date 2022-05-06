@@ -1,10 +1,9 @@
 import { Resolvers } from "./generated/graphql";
-import { Context } from ".";
 import { Profile, profileCollection } from "./models/profile";
 import * as functions from "firebase-functions";
 import * as authClaims from "../authClaims";
 
-export const resolvers: Resolvers<Context> = {
+export const resolvers: Resolvers = {
   Query: {
     hello: (a, b, { profile }) => {
       const person = profile ? profile.displayName : "stranger";

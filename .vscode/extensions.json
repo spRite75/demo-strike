@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "toba.vsfire",
+        "apollographql.vscode-apollo",
+        "capaj.graphql-codegen-vscode"
+    ]
+}

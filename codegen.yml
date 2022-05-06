@@ -1,0 +1,25 @@
+overwrite: true
+schema: "packages/functions/src/graphql/schema.graphql"
+documents: "packages/client/src/**/*.graphql"
+generates:
+  # Client Code
+  packages/client/src/generated/graphql.tsx:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-react-apollo"
+      - "fragment-matcher"
+  packages/client/src/generated/graphql.schema.json:
+    plugins:
+      - "introspection"
+
+  # GraphQL Server Code
+  packages/functions/src/graphql/generated/graphql.ts:
+    plugins:
+      - "typescript"
+      - "typescript-resolvers"
+    config:
+      contextType: ../#Context
+  packages/functions/src/graphql/generated/graphql.schema.json:
+    plugins:
+      - "introspection"
