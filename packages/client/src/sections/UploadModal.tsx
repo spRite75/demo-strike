@@ -4,22 +4,48 @@ import { DropzoneOptions, useDropzone } from "react-dropzone";
 import { useUploadFile } from "react-firebase-hooks/storage";
 import filesize from "filesize";
 import { useFirebase } from "../hooks/useFirebase";
+import { useUploadDemosMutation } from "../generated/graphql";
 
 export function UploadModal(props: { show: boolean; close: () => void }) {
   const { show, close } = props;
   const firebase = useFirebase();
-  const [upload] = useUploadFile();
+  const [uploadFile, _, status, error] = useUploadFile();
+  const [uploadInfo] = useUploadDemosMutation();
+  const uploadProgessText = status
+    ? `${Math.floor(status.bytesTransferred / status.totalBytes)}% `
+    : "";
+
+  // files to upload
   const [files, setFiles] = useState<File[]>([]);
+  // current file being uploaded
+  const [currentFile, setCurrentFile] = useState<File>();
+  // files uploaded
+  const [completedFiles, setCompletedFiles] = useState<File[]>([]);
 
   const cancel = () => {
     setFiles([]);
     close();
   };
   const accept = async () => {
-    await upload(
-      firebase.getStorageRef(files[0].name),
-      await files[0].arrayBuffer()
-    );
+    for (const file of files) {
+      setCurrentFile(file);
+      const storageRef = firebase.getStorageRef(file.name);
+      await uploadFile(storageRef, await file.arrayBuffer());
+      await uploadInfo({
+        variables: {
+          input: {
+            demos: [
+              {
+                filePath: storageRef.fullPath,
+                lastModified: file.lastModified.toString(),
+              },
+            ],
+          },
+        },
+      });
+      setCompletedFiles((completedFiles) => completedFiles.concat(file));
+    }
+
     close();
   };
 
@@ -47,6 +73,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
                 <div key={`${file.size}-${file.name}`}>
                   <div>{file.name}</div>
                   <div className="text-sm text-right opacity-50">
+                    {currentFile === file && <span>{uploadProgessText}</span>}
                     {filesize(file.size)}
                   </div>
                 </div>

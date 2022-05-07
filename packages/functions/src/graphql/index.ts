@@ -4,6 +4,7 @@ import { ApolloServer } from "apollo-server-cloud-functions";
 import { loadSchemaSync } from "@graphql-tools/load";
 import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
 import { join } from "path";
+
 import { resolvers } from "./resolvers";
 import { ContextFunction } from "apollo-server-core";
 import { extractUserTokenData } from "../authUser";

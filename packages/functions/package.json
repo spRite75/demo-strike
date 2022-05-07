@@ -16,6 +16,7 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@google-cloud/pubsub": "^2.19.4",
     "@graphql-tools/graphql-file-loader": "^7.3.11",
     "@graphql-tools/load": "^7.5.10",
     "@graphql-tools/utils": "^8.6.9",

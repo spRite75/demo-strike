@@ -1,10 +1,3 @@
-scalar Date # date will serialise as epoch milliseconds
-directive @flagged(requires: JwtFlag!) on OBJECT | FIELD_DEFINITION
-
-enum JwtFlag {
-  HAS_PROFILE
-}
-
 type Query {
   hello: String!
   profile: UserProfile
@@ -12,8 +5,7 @@ type Query {
 
 type Mutation {
   createProfile(input: CreateProfileInput!): UserProfile!
-  uploadDemos(input: UploadDemosInput!): UploadDemosResult!
-    @flagged(requires: HAS_PROFILE)
+  uploadDemos(input: UploadDemosInput!): Int!
 }
 
 input CreateProfileInput {
@@ -32,9 +24,5 @@ input UploadDemosInput {
 
 input DemoInput {
   filePath: String!
-  lastModified: Date!
-}
-
-type UploadDemosResult {
-  filenames: [String!]!
+  lastModified: String!
 }

@@ -1,11 +1,12 @@
 import { Resolvers } from "./generated/graphql";
 import { Profile, profileCollection } from "./models/profile";
 import * as functions from "firebase-functions";
+import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
 
 export const resolvers: Resolvers = {
   Query: {
-    hello: async (a, b, { uid }) => {
+    hello: async (_, __, { uid }) => {
       const profile =
         !!uid &&
         (await profileCollection()
@@ -15,7 +16,7 @@ export const resolvers: Resolvers = {
       const person = profile ? profile.displayName : "stranger";
       return `Hello ${person}!`;
     },
-    profile: async (a, b, { uid }) => {
+    profile: async (_, __, { uid }) => {
       if (!uid) return null;
       const profile = await profileCollection()
         .doc(uid)
@@ -43,6 +44,22 @@ export const resolvers: Resolvers = {
           .toISOString()}`
       );
       return profile;
+    },
+    uploadDemos: async (_, { input: { demos } }, { uid, roles }) => {
+      if (!uid) throw new Error("User is not signed in!");
+      if (!roles || !roles.some((role) => role === "user"))
+        throw new Error("User is missing 'user' role!");
+
+      const pubsub = new PubSub();
+      const topic = pubsub.topic("demo-uploads");
+
+      await Promise.all(
+        demos.map(async (demo) => {
+          await topic.publishMessage({ json: demo });
+        })
+      );
+
+      return 200;
     },
   },
 };

@@ -3,3 +3,7 @@ mutation CreateProfile($input: CreateProfileInput!) {
     displayName
   }
 }
+
+mutation UploadDemos($input: UploadDemosInput!) {
+  uploadDemos(input: $input)
+}

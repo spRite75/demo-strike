@@ -88,6 +88,8 @@ export const authUser = {
 
 export const extractUserTokenData = (decodedIdToken: DecodedIdToken) => ({
   uid: decodedIdToken.uid,
-  roles: decodedIdToken.roles || [],
+  roles: Array.isArray(decodedIdToken.roles)
+    ? (decodedIdToken.roles as Role[])
+    : ([] as Role[]),
   flags: { hasProfile: !!decodedIdToken.hasProfile },
 });

@@ -3,15 +3,15 @@ import {
   InMemoryCache,
   ApolloLink,
   concat,
-  createHttpLink
+  createHttpLink,
 } from "@apollo/client";
-import { setContext } from '@apollo/client/link/context';
+import { setContext } from "@apollo/client/link/context";
 
 import { Firebase } from "./firebase";
 
-export function getApolloClient(firebase: Firebase){
+export function getApolloClient(firebase: Firebase) {
   const httpLink = createHttpLink({
-    uri: '/graphql',
+    uri: "/graphql",
   });
 
   const authLink = setContext(async (_, { headers }) => {
