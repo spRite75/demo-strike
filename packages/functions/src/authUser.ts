@@ -3,7 +3,7 @@ import { DecodedIdToken } from "firebase-admin/lib/auth/token-verifier";
 import { UserRecord } from "firebase-functions/v1/auth";
 
 /** Valid names for flags */
-export type FlagName = "hasProfile";
+export type FlagName = "needsProfile" | "hasProfile";
 
 /** Generates methods for controlling a boolean value in the customClaims of a user. Use within the `authUser` object */
 function flagGenerator(
@@ -56,6 +56,13 @@ export const authUser = {
     return {
       /** boolean values which indicate things about a user */
       flags: {
+        /** prompt user to initialise profile (also allows profile creation) */
+        needsProfile: flagGenerator(
+          "needsProfile",
+          getCustomClaims,
+          updateCustomClaims
+        ),
+
         /** user has successfully initialised their profile */
         hasProfile: flagGenerator(
           "hasProfile",
@@ -91,5 +98,8 @@ export const extractUserTokenData = (decodedIdToken: DecodedIdToken) => ({
   roles: Array.isArray(decodedIdToken.roles)
     ? (decodedIdToken.roles as Role[])
     : ([] as Role[]),
-  flags: { hasProfile: !!decodedIdToken.hasProfile },
+  flags: {
+    hasProfile: !!decodedIdToken.hasProfile,
+    needsProfile: !!decodedIdToken.needsProfile,
+  },
 });

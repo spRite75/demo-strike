@@ -14,6 +14,8 @@ export interface IParsedDemo {
   teams: ITeam[];
   rounds: IRound[];
   isFinal: boolean;
+  id: string | undefined;
+  uploaderUid: string | undefined;
 }
 
 export class ParsedDemo implements IParsedDemo {
@@ -23,15 +25,27 @@ export class ParsedDemo implements IParsedDemo {
     players,
     rounds,
     teams,
+    id,
+    uploaderUid,
   }: IParsedDemo): ParsedDemo {
     const parsedDemo = new ParsedDemo();
     parsedDemo._isFinal = isFinal;
     parsedDemo.players = players.map(Player.fromData);
     parsedDemo.rounds = rounds.map(Round.fromData);
     parsedDemo.teams = teams.map(Team.fromData);
+    parsedDemo._id = id;
+    parsedDemo._uploaderUid = uploaderUid;
     return parsedDemo;
   }
 
+  private _id: string | undefined;
+  get id() {
+    return this._id;
+  }
+  private _uploaderUid: string | undefined;
+  get uploaderUid() {
+    return this._uploaderUid;
+  }
   players: Player[] = [];
   teams: Team[] = [];
   rounds: Round[] = [];
@@ -77,8 +91,14 @@ export class ParsedDemo implements IParsedDemo {
   get isFinal() {
     return this._isFinal;
   }
-  finalise() {
+  finalise(fileName: string, uploaderUid: string) {
     if (this._isFinal) throw new Error("Match already finalised!");
+
+    // Set match id
+    this._id = fileName;
+
+    // Set uploader id
+    this._uploaderUid = uploaderUid;
 
     // Add players to teams
     this.teams.forEach((team) => {
@@ -88,12 +108,30 @@ export class ParsedDemo implements IParsedDemo {
         )
       );
     });
+
+    // Mark document as final
+    this._isFinal = true;
   }
 }
 
 const converter: FirestoreDataConverter<ParsedDemo> = {
-  toFirestore({ isFinal, players, rounds, teams }: ParsedDemo): IParsedDemo {
-    return { isFinal, players, rounds, teams };
+  toFirestore({
+    isFinal,
+    players,
+    rounds,
+    teams,
+    id,
+    uploaderUid,
+  }: ParsedDemo): IParsedDemo {
+    const data: IParsedDemo = {
+      isFinal,
+      players,
+      rounds,
+      teams,
+      id,
+      uploaderUid,
+    };
+    return JSON.parse(JSON.stringify(data));
   },
   fromFirestore(snapshot: QueryDocumentSnapshot): ParsedDemo {
     const data = snapshot.data() as IParsedDemo;
@@ -101,6 +139,6 @@ const converter: FirestoreDataConverter<ParsedDemo> = {
   },
 };
 
-export function profileCollection() {
+export function parsedDemoCollection() {
   return admin.firestore().collection("parsed-demos").withConverter(converter);
 }

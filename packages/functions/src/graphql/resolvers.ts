@@ -3,6 +3,7 @@ import { Profile, profileCollection } from "../models/firestore/profile";
 import * as functions from "firebase-functions";
 import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
+import { demoUploadsPubsub } from "../models/pubsub";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -17,7 +18,7 @@ export const resolvers: Resolvers = {
       return `Hello ${person}!`;
     },
     profile: async (_, __, { uid }) => {
-      if (!uid) return null;
+      if (!uid) throw new Error("User is not signed in!");
       const profile = await profileCollection()
         .doc(uid)
         .get()
@@ -26,9 +27,9 @@ export const resolvers: Resolvers = {
     },
   },
   Mutation: {
-    createProfile: async (_, { input: { displayName } }, { uid }) => {
+    createProfile: async (_, { input: { displayName } }, { uid, flags }) => {
       if (!uid) throw new Error("User is not signed in!");
-      if (!displayName) throw new Error("Display name is required");
+      if (!(flags && flags.needsProfile)) throw new Error("User not eligible!");
 
       const profile = new Profile({ id: uid, displayName });
       const writeResult = await profileCollection()
@@ -36,7 +37,10 @@ export const resolvers: Resolvers = {
         .set(profile);
 
       const user = authUser.uid(uid);
-      await Promise.all([user.flags.hasProfile.set(), user.roles.add("user")]);
+      await user.flags.hasProfile
+        .set()
+        .then(() => user.flags.needsProfile.unset())
+        .then(() => user.roles.add("user"));
 
       functions.logger.log(
         `Created profile for ${displayName} (uid: ${uid}) at ${writeResult.writeTime
@@ -51,11 +55,13 @@ export const resolvers: Resolvers = {
         throw new Error("User is missing 'user' role!");
 
       const pubsub = new PubSub();
-      const topic = pubsub.topic("demo-uploads");
+      const topic = pubsub.topic(demoUploadsPubsub.topicName);
 
       await Promise.all(
         demos.map(async (demo) => {
-          await topic.publishMessage({ json: demo });
+          await topic.publishMessage(
+            demoUploadsPubsub.create({ ...demo, uploaderUid: "TODO" })
+          );
         })
       );
 

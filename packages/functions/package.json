@@ -21,6 +21,7 @@
     "@graphql-tools/load": "^7.5.10",
     "@graphql-tools/utils": "^8.6.9",
     "apollo-server-cloud-functions": "^3.6.7",
+    "demofile": "^2.9.2",
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.18.0",
     "graphql": "^16.4.0"

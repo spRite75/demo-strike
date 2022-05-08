@@ -9,6 +9,7 @@ import { getStorage, connectStorageEmulator, ref } from "firebase/storage";
 import * as firebaseui from "firebaseui";
 
 import { createContext } from "react";
+import { isLocal } from "./isLocal";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyBkg3VmuoUYLlrUnvcm-lwFHSMfsn0T-Ns",
@@ -39,8 +40,11 @@ export class Firebase {
   private readonly ui: firebaseui.auth.AuthUI;
 
   constructor() {
-    connectAuthEmulator(this.auth, "http://localhost:9099");
-    connectStorageEmulator(this.storage, "localhost", 9199);
+    if (isLocal) {
+      connectAuthEmulator(this.auth, "http://localhost:9099");
+      connectStorageEmulator(this.storage, "localhost", 9199);
+    }
+
     this.ui = new firebaseui.auth.AuthUI(this.auth);
   }
 

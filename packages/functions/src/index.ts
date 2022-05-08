@@ -1,13 +1,7 @@
 import { handler as graphql } from "./graphql";
-import * as functions from "firebase-functions";
-
-const pubsubhelloworld = functions.pubsub
-  .topic("demo-uploads")
-  .onPublish((message, context) => {
-    functions.logger.log("received a demo", message.json);
-  });
+import { handler as parseDemo } from "./parseDemo";
 
 module.exports = {
   graphql,
-  pubsubhelloworld,
+  parseDemo,
 };

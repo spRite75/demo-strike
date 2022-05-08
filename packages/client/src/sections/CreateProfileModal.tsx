@@ -1,13 +1,18 @@
 import React, { useRef } from "react";
 import { Button, Modal } from "react-daisyui";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useCreateProfileMutation } from "../generated/graphql";
+import { useFirebase } from "../hooks/useFirebase";
 
 export function CreateProfileModal(props: {
   show: boolean;
   close: () => void;
 }) {
   const { show, close } = props;
-  const [createProfile] = useCreateProfileMutation();
+  const firebase = useFirebase();
+  const [createProfile] = useCreateProfileMutation({
+    onCompleted: () => firebase.getAuth().currentUser?.getIdToken(true),
+  });
   const displayNameInput = useRef<HTMLInputElement>(null);
 
   const cancel = () => close();

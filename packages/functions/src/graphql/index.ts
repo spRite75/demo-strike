@@ -20,16 +20,13 @@ const typeDefs = loadSchemaSync(join(__dirname, "schema.graphql"), {
 
 const context: ContextFunction<any, Context> = async ({ req }) => {
   let userTokenData: Partial<ReturnType<typeof extractUserTokenData>> = {};
-  const idToken = req.headers.authorization || "";
-  if (idToken.length > 0) {
-    const decodedJwt =
-      idToken.length > 0
-        ? await admin.auth().verifyIdToken(idToken)
-        : undefined;
-
-    if (decodedJwt) {
-      userTokenData = extractUserTokenData(decodedJwt);
-    }
+  try {
+    const decodedJwt = await admin
+      .auth()
+      .verifyIdToken(req.headers.authorization);
+    userTokenData = extractUserTokenData(decodedJwt);
+  } catch (e) {
+    functions.logger.warn("idToken not decoded", e);
   }
 
   return { ...userTokenData };
