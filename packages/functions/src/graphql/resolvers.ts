@@ -1,5 +1,5 @@
 import { Resolvers } from "./generated/graphql";
-import { Profile, profileCollection } from "./models/profile";
+import { Profile, profileCollection } from "../models/firestore/profile";
 import * as functions from "firebase-functions";
 import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
