@@ -15,8 +15,7 @@ async function load(filePath: string) {
 export const handler = functions.pubsub
   .topic(demoUploadsPubsub.topicName)
   .onPublish(async (pubsubMessage) => {
-    const { filePath, lastModified, uploaderUid } =
-      demoUploadsPubsub.read(pubsubMessage);
+    const { filePath, uploaderUid } = demoUploadsPubsub.read(pubsubMessage);
     functions.logger.log("received a demo", pubsubMessage.json);
     const file = await load(filePath);
     const parsedDemo = await parser.parseDemo({
