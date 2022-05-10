@@ -12,6 +12,11 @@
             "remotePort": 4000
         },
         {
+            "name": "Firebase UI (WebSockets)",
+            "localPort": 39377,
+            "remotePort": 39377
+        },
+        {
             "name": "Firebase Auth",
             "localPort": 9099,
             "remotePort": 9099
@@ -25,6 +30,11 @@
             "name": "Firebase Storage",
             "localPort": 9199,
             "remotePort": 9199
+        },
+        {
+            "name": "Firebase Firestore",
+            "localPort": 8080,
+            "remotePort": 8080
         },
     ]
 }

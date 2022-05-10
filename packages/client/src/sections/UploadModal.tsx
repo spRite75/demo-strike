@@ -12,7 +12,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
   const [uploadFile, _, status, error] = useUploadFile();
   const [uploadInfo] = useUploadDemosMutation();
   const uploadProgessText = status
-    ? `${Math.floor(status.bytesTransferred / status.totalBytes)}% `
+    ? `${Math.floor(status.bytesTransferred / status.totalBytes * 100)}% `
     : "";
 
   // files to upload
@@ -30,7 +30,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
     for (const file of files) {
       setCurrentFile(file);
       const storageRef = firebase.getStorageRef(file.name);
-      await uploadFile(storageRef, await file.arrayBuffer());
+      await uploadFile(storageRef, file);
       await uploadInfo({
         variables: {
           input: {
