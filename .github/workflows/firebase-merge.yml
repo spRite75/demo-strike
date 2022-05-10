@@ -9,5 +9,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: npm i -g firebase-tools
-      - run: npm ci
+      - run: npm ci && npm run build
       - run: firebase deploy --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
