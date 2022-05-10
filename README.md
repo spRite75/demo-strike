@@ -24,3 +24,9 @@ Well done! Here are the ports/urls you will need:
 - Firebase emulators UI: http://localhost:4000
 
 You'll need to restart the watch command you ran in step 3 if you change `packages/functions/src/graphql/schema.graphql`.
+
+### Creating a user
+
+1. Sign in via the main page at `http://localhost:5000` to create a local user account
+2. Add the `needsProfile` flag to the user in the Firebase Auth Emulator
+<div style="text-align: center;"><img src="./docs/local-user-setup.png" height="400"></div>
