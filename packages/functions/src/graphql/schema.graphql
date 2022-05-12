@@ -23,6 +23,6 @@ input UploadDemosInput {
 }
 
 input DemoInput {
-  filePath: String!
+  fileName: String!
   lastModified: String!
 }

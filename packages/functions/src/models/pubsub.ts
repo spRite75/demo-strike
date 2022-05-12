@@ -31,3 +31,17 @@ export const demoUploadsPubsub = pubsubGenerator<{
   functions.logger.error("Invalid DemoUploadMessage", json);
   throw new Error("Invalid DemoUploadMessage");
 });
+
+export const demoParseFailurePubsub = pubsubGenerator<{
+  fileName: string;
+  failedTime: number;
+}>("demo-parse-failure", ({ json }) => {
+  if (
+    typeof json === "object" &&
+    typeof json.fileName === "string" &&
+    typeof json.failedTime === "number"
+  )
+    return json;
+  functions.logger.error("Invalid ParseDemoFailureMessage", json);
+  throw new Error("Invalid ParseDemoFailureMessage");
+});

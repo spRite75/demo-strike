@@ -60,7 +60,11 @@ export const resolvers: Resolvers = {
       await Promise.all(
         demos.map(async (demo) => {
           await topic.publishMessage(
-            demoUploadsPubsub.create({ ...demo, uploaderUid: uid })
+            demoUploadsPubsub.create({
+              filePath: `demos/u/${uid}/o/${demo.fileName}`,
+              lastModified: demo.lastModified,
+              uploaderUid: uid,
+            })
           );
         })
       );

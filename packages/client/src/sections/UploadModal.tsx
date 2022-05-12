@@ -12,7 +12,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
   const [uploadFile, _, status, error] = useUploadFile();
   const [uploadInfo] = useUploadDemosMutation();
   const uploadProgessText = status
-    ? `${Math.floor(status.bytesTransferred / status.totalBytes * 100)}% `
+    ? `${Math.floor((status.bytesTransferred / status.totalBytes) * 100)}% `
     : "";
 
   // files to upload
@@ -36,7 +36,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
           input: {
             demos: [
               {
-                filePath: storageRef.fullPath,
+                fileName: file.name,
                 lastModified: file.lastModified.toString(),
               },
             ],
