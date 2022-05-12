@@ -1,14 +1,11 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { ParsingService } from "./parser";
-import { parsedDemoCollection } from "../models/firestore/ParsedDemo";
+import { parseDemo } from "./parser";
+import { parsedDemosCollection } from "../models/firestore";
 import { demoUploadsPubsub } from "../models/pubsub";
-
-const parser = new ParsingService();
 
 async function load(filePath: string) {
   const [file] = await admin.storage().bucket().file(filePath).download();
-
   return file;
 }
 
@@ -18,12 +15,10 @@ export const handler = functions.pubsub
     const { filePath, uploaderUid } = demoUploadsPubsub.read(pubsubMessage);
     functions.logger.log("received a demo", pubsubMessage.json);
     const file = await load(filePath);
-    const parsedDemo = await parser.parseDemo({
+    const parsedDemo = await parseDemo({
       fileName: filePath.split("/").pop() || "",
       uploaderUid,
-      demoStream: file,
+      demoBuffer: file,
     });
-    await parsedDemoCollection()
-      .doc(parsedDemo.id || "")
-      .set(parsedDemo);
+    await parsedDemosCollection().doc(parsedDemo.id).set(parsedDemo);
   });

@@ -1,5 +1,5 @@
 import { Resolvers } from "./generated/graphql";
-import { Profile, profileCollection } from "../models/firestore/profile";
+import { ProfileDocument, profilesCollection } from "../models/firestore";
 import * as functions from "firebase-functions";
 import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
@@ -10,7 +10,7 @@ export const resolvers: Resolvers = {
     hello: async (_, __, { uid }) => {
       const profile =
         !!uid &&
-        (await profileCollection()
+        (await profilesCollection()
           .doc(uid)
           .get()
           .then((doc) => doc.data()));
@@ -19,7 +19,7 @@ export const resolvers: Resolvers = {
     },
     profile: async (_, __, { uid }) => {
       if (!uid) throw new Error("User is not signed in!");
-      const profile = await profileCollection()
+      const profile = await profilesCollection()
         .doc(uid)
         .get()
         .then((doc) => doc.data());
@@ -31,8 +31,8 @@ export const resolvers: Resolvers = {
       if (!uid) throw new Error("User is not signed in!");
       if (!(flags && flags.needsProfile)) throw new Error("User not eligible!");
 
-      const profile = new Profile({ id: uid, displayName });
-      const writeResult = await profileCollection()
+      const profile: ProfileDocument = { id: uid, displayName };
+      const writeResult = await profilesCollection()
         .doc(profile.id)
         .set(profile);
 
@@ -60,7 +60,7 @@ export const resolvers: Resolvers = {
       await Promise.all(
         demos.map(async (demo) => {
           await topic.publishMessage(
-            demoUploadsPubsub.create({ ...demo, uploaderUid: "TODO" })
+            demoUploadsPubsub.create({ ...demo, uploaderUid: uid })
           );
         })
       );

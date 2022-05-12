@@ -1,153 +1,184 @@
 import { DemoFile } from "demofile";
-import { ParsedDemo } from "../models/firestore/ParsedDemo";
-import { TeamLetter } from "../models/firestore/ParsedDemo/TeamLetter";
+import * as functions from "firebase-functions";
+import {
+  ParsedDemoDocument,
+  ParsedDemoDocument_team_score,
+  TeamLetter,
+} from "../models/firestore/parsedDemo";
+import { ParsedDemoWriter } from "./parsedDemoWriter";
 
-export class ParsingService {
-  private getTeamLetter(teamNumber?: number): TeamLetter {
-    switch (teamNumber) {
-      case 2:
-        return "T";
-      case 3:
-        return "CT";
-      default:
-        return "???";
-    }
+function getTeamLetter(teamNumber?: number): TeamLetter {
+  switch (teamNumber) {
+    case 2:
+      return "T";
+    case 3:
+      return "CT";
+    default:
+      return "???";
   }
+}
 
-  async parseDemo({
-    fileName,
-    uploaderUid,
-    demoStream,
-  }: {
-    fileName: string;
-    uploaderUid: string;
-    demoStream: Buffer;
-  }): Promise<ParsedDemo> {
-    return new Promise(async (resolve, reject) => {
-      const match = new ParsedDemo();
-      let demoState = { roundNumber: 0 };
-      const demoFile = new DemoFile();
+export async function parseDemo(opts: {
+  fileName: string;
+  uploaderUid: string;
+  demoBuffer: Buffer;
+}) {
+  const { fileName, uploaderUid, demoBuffer } = opts;
 
-      const getTime = () => demoFile.currentTime;
+  return new Promise<ParsedDemoDocument>(async (resolve, reject) => {
+    const demoWriter = new ParsedDemoWriter();
 
-      demoFile.gameEvents.on("player_connect_full", (e) => {
-        const {
-          player: { steamId, name, team },
-        } = e;
-        const teamId = team?.handle;
-        if (!teamId) return;
-        match.addPlayer(steamId, name);
-      });
+    const demoFile = new DemoFile();
 
-      demoFile.gameEvents.on("round_start", () => {
-        if (!demoFile.gameRules.isWarmup) {
-          demoState = {
-            ...demoState,
-            roundNumber: demoFile.gameRules.roundsPlayed + 1,
-          };
-        }
+    // Useful bits of demo state
+    const state = {
+      getRound: () =>
+        demoFile.gameRules.isWarmup ? 0 : demoFile.gameRules.roundsPlayed + 1,
+      getTime: () => demoFile.currentTime,
+      getPhase: () => demoFile.gameRules.phase,
+    };
 
-        demoFile.players.forEach((demoPlayer) => {
-          const matchPlayer = match.players.find(
-            (p) => p.steamId === demoPlayer.steamId
-          );
-          if (!matchPlayer) return;
+    const unhandledEventKinds: {
+      [eventName: string]: { [key: string]: string };
+    } = {};
 
-          // Update player team
-          matchPlayer.setTeam(
-            demoFile.gameRules.phase,
-            this.getTeamLetter(demoPlayer.teamNumber)
-          );
-        });
-
-        match.recordEvent(demoState.roundNumber, {
-          eventKind: "RoundStartEvent",
-          eventTime: getTime(),
-          roundNumber: demoState.roundNumber,
-        });
-      });
-
-      demoFile.gameEvents.on("player_death", (e) => {
-        match.recordEvent(demoState.roundNumber, {
-          eventKind: "DeathEvent",
-          eventTime: getTime(),
-          attacker: {
-            steamId: e.attackerEntity?.steamId || "UNKNOWN",
-            name: e.attackerEntity?.name || "UNKNOWN",
-            team: this.getTeamLetter(e.attackerEntity?.teamNumber),
-          },
-          victim: {
-            steamId: e.player.steamId,
-            name: e.player.name,
-            team: this.getTeamLetter(e.player.teamNumber),
-          },
-          weapon: e.weapon,
-        });
-      });
-
-      demoFile.gameEvents.on("bomb_planted", (e) => {
-        match.recordEvent(demoState.roundNumber, {
-          eventKind: "BombPlantedEvent",
-          eventTime: getTime(),
-          planter: { steamId: e.player.steamId, name: e.player.name },
-          location: e.player.placeName,
-        });
-      });
-
-      demoFile.gameEvents.on("round_end", (e) => {
-        demoFile.players.forEach((demoPlayer) => {
-          const matchPlayer = match.players.find(
-            (p) => p.steamId === demoPlayer.steamId
-          );
-          if (!matchPlayer) return;
-
-          // Save player scores
-          const { kills, assists, deaths, score } = demoPlayer;
-          matchPlayer.setScores({ kills, assists, deaths, score });
-        });
-
-        match.recordEvent(demoState.roundNumber, {
-          eventKind: "RoundEndEvent",
-          eventTime: getTime(),
-          phase: demoFile.gameRules.phase,
-          reason: e.reason.toString(),
-        });
-      });
-
-      demoFile.gameEvents.on("round_officially_ended", () => {
-        match.recordEvent(demoState.roundNumber, {
-          eventKind: "RoundOfficialEndEvent",
-          eventTime: getTime(),
-        });
-      });
-
-      demoFile.on("end", (e) => {
-        if (e.error) {
-          console.error("Error during parsing:", e.error);
-          process.exitCode = 1;
-        }
-
-        // Create teams
-        demoFile.teams.forEach((team) => {
-          const teamLetter = this.getTeamLetter(team.teamNumber);
-          if (teamLetter === "???") return;
-
-          match.addTeam(teamLetter, {
-            firstHalf: team.scoreFirstHalf,
-            secondHalf: team.scoreSecondHalf,
-            total: team.score,
+    demoFile.gameEvents.on("event", ({ name, event }) => {
+      switch (name) {
+        case "round_start": {
+          // Any player present at the start of a round
+          // should be added and have their team updated
+          demoFile.players.forEach((demoPlayer) => {
+            demoWriter.addPlayer(demoPlayer.steamId, demoPlayer.name);
+            demoWriter.setPlayerTeam(
+              demoPlayer.steamId,
+              state.getPhase(),
+              getTeamLetter(demoPlayer.teamNumber)
+            );
           });
-        });
 
-        // Do any finalisation on the match object
-        match.finalise(fileName, uploaderUid);
+          demoWriter.recordEvent(state.getRound(), {
+            eventTime: state.getTime(),
+            eventKind: "RoundStartEvent",
+          });
+          break;
+        }
 
-        // Here's where we return the built up match object
-        resolve(match);
+        case "player_death": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "DeathEvent",
+            eventTime: state.getTime(),
+            attacker: {
+              steamId: event.attackerEntity?.steamId || "UNKNOWN",
+              team: getTeamLetter(event.attackerEntity?.teamNumber),
+            },
+            victim: {
+              steamId: event.player.steamId,
+              team: getTeamLetter(event.player.teamNumber),
+            },
+            weapon: event.weapon,
+          });
+          break;
+        }
+
+        case "bomb_planted": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "BombPlantedEvent",
+            eventTime: state.getTime(),
+            planter: { steamId: event.player.steamId },
+            location: event.player.placeName,
+          });
+          break;
+        }
+
+        case "bomb_defused": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "BombDefusedEvent",
+            eventTime: state.getTime(),
+            defuser: { steamId: event.player.steamId },
+            location: event.player.placeName,
+          });
+          break;
+        }
+
+        // Round ends and a team has won the round
+        case "round_end": {
+          // Save player scores
+          demoFile.players.forEach((demoPlayer) => {
+            const { score, kills, assists, deaths } = demoPlayer;
+            demoWriter.updatePlayerScore(
+              demoPlayer.steamId,
+              (currentScore) => ({
+                ...currentScore,
+                score,
+                kills,
+                assists,
+                deaths,
+              })
+            );
+          });
+
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "RoundEndEvent",
+            eventTime: state.getTime(),
+            phase: demoFile.gameRules.phase,
+            reason: event.reason.toString(),
+          });
+          break;
+        }
+
+        // After round time reset
+        case "round_officially_ended": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "RoundOfficialEndEvent",
+            eventTime: state.getTime(),
+          });
+          break;
+        }
+
+        // Prepare to log unhandled event kinds with some basic info about what they contain
+        default: {
+          unhandledEventKinds[name] = Object.keys(event).reduce<{
+            [key: string]: string;
+          }>((acc, key) => {
+            acc[key] = typeof (event as any)[key];
+            return acc;
+          }, {});
+        }
+      }
+    });
+
+    demoFile.on("end", (e) => {
+      functions.logger.warn("unprocesssed gameEvents", { unhandledEventKinds });
+
+      if (e.error) {
+        console.error("Error during parsing:", e.error);
+        process.exitCode = 1;
+      }
+
+      const finalTeamScores: {
+        CT: ParsedDemoDocument_team_score;
+        T: ParsedDemoDocument_team_score;
+      } = {
+        CT: { firstHalf: 0, secondHalf: 0, total: 0 },
+        T: { firstHalf: 0, secondHalf: 0, total: 0 },
+      };
+
+      demoFile.teams.forEach((team) => {
+        const teamLetter = getTeamLetter(team.teamNumber);
+        if (teamLetter === "???") return;
+
+        finalTeamScores[teamLetter] = {
+          firstHalf: team.scoreFirstHalf,
+          secondHalf: team.scoreSecondHalf,
+          total: team.score,
+        };
       });
 
-      // Start parsing the stream now that we've added our event listeners
-      demoFile.parse(demoStream);
+      demoWriter.finalise({ fileName, uploaderUid, finalTeamScores });
+      resolve(demoWriter.get());
     });
-  }
+
+    // Start parsing now that we've added our event listeners
+    demoFile.parse(demoBuffer);
+  });
 }

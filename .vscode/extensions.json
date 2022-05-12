@@ -2,6 +2,7 @@
     "recommendations": [
         "toba.vsfire",
         "apollographql.vscode-apollo",
-        "capaj.graphql-codegen-vscode"
+        "capaj.graphql-codegen-vscode",
+        "esbenp.prettier-vscode"
     ]
 }
