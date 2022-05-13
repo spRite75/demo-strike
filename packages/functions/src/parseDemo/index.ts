@@ -1,9 +1,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { parseDemo } from "./parseDemo";
-import { parsedDemosCollection } from "../models/firestore";
+import { parsedDemosCollection, profilesCollection } from "../models/firestore";
 import { demoParseFailurePubsub, demoUploadsPubsub } from "../models/pubsub";
 import { PubSub } from "@google-cloud/pubsub";
+import { FieldValue } from "firebase-admin/firestore";
 
 async function load(filePath: string) {
   const [file] = await admin.storage().bucket().file(filePath).download();
@@ -25,6 +26,9 @@ export const handler = functions.pubsub
         demoBuffer: file,
       });
       await parsedDemosCollection().doc(parsedDemo.id).set(parsedDemo);
+      await profilesCollection()
+        .doc(uploaderUid)
+        .update({ parsedDemos: FieldValue.arrayUnion(parsedDemo.id) });
     } catch (error) {
       const pubsub = new PubSub();
       const topic = pubsub.topic(demoParseFailurePubsub.topicName);

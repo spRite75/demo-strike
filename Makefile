@@ -1,4 +1,4 @@
-.PHONY: install generate start-local
+.PHONY: install build watch generate start-local start-local-debug
 
 install:
 	npm i
@@ -14,3 +14,8 @@ generate:
 
 start-local:
 	firebase emulators:start --import .emulatordata --export-on-exit
+
+start-local-debug:
+	firebase emulators:start --import .emulatordata --export-on-exit --inspect-functions
+
+

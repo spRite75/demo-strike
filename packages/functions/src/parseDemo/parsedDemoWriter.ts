@@ -17,6 +17,11 @@ export class ParsedDemoWriter {
     playersSteamIds: [],
     teams: [],
     rounds: [],
+    mapName: "",
+    serverName: "",
+    playbackTicks: 0,
+    playbackTime: 0,
+    steamworksSessionIdServer: "",
   };
 
   private players: (ParsedDemoDocument_team_player & {
@@ -108,11 +113,30 @@ export class ParsedDemoWriter {
       CT: ParsedDemoDocument_team_score;
       T: ParsedDemoDocument_team_score;
     };
+    mapName: string;
+    serverName: string;
+    playbackTicks: number;
+    playbackTime: number;
+    steamworksSessionIdServer: string;
   }) {
-    const { fileName, uploaderUid, finalTeamScores } = opts;
+    const {
+      fileName,
+      uploaderUid,
+      finalTeamScores,
+      mapName,
+      serverName,
+      playbackTicks,
+      playbackTime,
+      steamworksSessionIdServer,
+    } = opts;
 
-    // Set ParsedDemo ID
+    // Set ParsedDemo ID and other metadata
     this.demo.id = fileName;
+    this.demo.mapName = mapName;
+    this.demo.serverName = serverName;
+    this.demo.playbackTicks = playbackTicks;
+    this.demo.playbackTime = playbackTime;
+    this.demo.steamworksSessionIdServer = steamworksSessionIdServer;
 
     // Add uploader to list of uploader UIDs
     if (!this.demo.uploadersUids.some((uid) => uid === uploaderUid)) {

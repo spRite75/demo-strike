@@ -31,7 +31,11 @@ export const resolvers: Resolvers = {
       if (!uid) throw new Error("User is not signed in!");
       if (!(flags && flags.needsProfile)) throw new Error("User not eligible!");
 
-      const profile: ProfileDocument = { id: uid, displayName };
+      const profile: ProfileDocument = {
+        id: uid,
+        displayName,
+        parsedDemos: [],
+      };
       const writeResult = await profilesCollection()
         .doc(profile.id)
         .set(profile);

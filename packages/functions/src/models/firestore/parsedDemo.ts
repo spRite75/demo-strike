@@ -4,6 +4,11 @@ export interface ParsedDemoDocument {
   playersSteamIds: string[];
   rounds: ParsedDemoDocument_round[];
   teams: ParsedDemoDocument_team[];
+  mapName: string;
+  serverName: string;
+  playbackTicks: number;
+  playbackTime: number;
+  steamworksSessionIdServer: string;
 }
 
 export interface ParsedDemoDocument_round {
@@ -12,6 +17,14 @@ export interface ParsedDemoDocument_round {
 }
 
 export type TeamLetter = "T" | "CT" | "???";
+export type SiteLetter = "A" | "B" | "???";
+
+export interface EntityLocation {
+  x: number;
+  y: number;
+  z: number;
+  name: string;
+}
 
 export type ParsedDemoDocument_round_event = {
   /** Time from the start of the demo */
@@ -21,20 +34,62 @@ export type ParsedDemoDocument_round_event = {
       eventKind: "RoundStartEvent";
     }
   | {
-      eventKind: "DeathEvent";
-      attacker: { steamId: string; team: TeamLetter };
-      victim: { steamId: string; team: TeamLetter };
+      eventKind: "PlayerHurtEvent";
+      attacker?: {
+        steamId: string;
+        team: TeamLetter;
+        location: EntityLocation;
+      };
+      victim: { steamId: string; team: TeamLetter; location: EntityLocation };
+      health: number;
+      armor: number;
+      dmgHealth: number;
+      dmgArmor: number;
+      hitGroup: number;
       weapon: string;
     }
   | {
+      eventKind: "DeathEvent";
+      attacker?: {
+        steamId: string;
+        team: TeamLetter;
+        location: EntityLocation;
+      };
+      victim: { steamId: string; team: TeamLetter; location: EntityLocation };
+      weapon: string;
+    }
+  | {
+      eventKind: "BombDroppedEvent";
+      location: EntityLocation;
+      dropper: { steamId: string };
+    }
+  | {
+      eventKind: "BombPickedUpEvent";
+      picker: { steamId: string; location: EntityLocation };
+    }
+  | {
+      eventKind: "BombBeginPlantEvent";
+      planter: { steamId: string; location: EntityLocation };
+      site: SiteLetter;
+    }
+  | {
       eventKind: "BombPlantedEvent";
-      planter: { steamId: string };
-      location: string;
+      planter: { steamId: string; location: EntityLocation };
+      site: SiteLetter;
+    }
+  | {
+      eventKind: "BombBeginDefuseEvent";
+      defuser: { steamId: string; hasKit: boolean; location: EntityLocation };
+      site: SiteLetter;
     }
   | {
       eventKind: "BombDefusedEvent";
-      defuser: { steamId: string };
-      location: string;
+      defuser: { steamId: string; hasKit: boolean; location: EntityLocation };
+      site: SiteLetter;
+    }
+  | {
+      eventKind: "BombExplodedEvent";
+      site: SiteLetter;
     }
   | {
       eventKind: "RoundEndEvent";

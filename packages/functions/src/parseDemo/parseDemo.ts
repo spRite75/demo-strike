@@ -1,9 +1,10 @@
-import { DemoFile } from "demofile";
+import { BaseEntity, DemoFile, Player } from "demofile";
 import * as functions from "firebase-functions";
 import {
   ParsedDemoDocument,
   ParsedDemoDocument_team_score,
   TeamLetter,
+  EntityLocation,
 } from "../models/firestore/parsedDemo";
 import { ParsedDemoWriter } from "./parsedDemoWriter";
 
@@ -16,6 +17,13 @@ function getTeamLetter(teamNumber?: number): TeamLetter {
     default:
       return "???";
   }
+}
+
+function getLocation(entity: BaseEntity | Player): EntityLocation {
+  return {
+    ...entity.position,
+    name: entity instanceof Player ? entity.placeName : "",
+  };
 }
 
 export async function parseDemo(opts: {
@@ -48,11 +56,14 @@ export async function parseDemo(opts: {
           // Any player present at the start of a round
           // should be added and have their team updated
           demoFile.players.forEach((demoPlayer) => {
+            const playerTeamLetter = getTeamLetter(demoPlayer.teamNumber);
+            if (demoPlayer.isFakePlayer) return;
+
             demoWriter.addPlayer(demoPlayer.steamId, demoPlayer.name);
             demoWriter.setPlayerTeam(
               demoPlayer.steamId,
               state.getPhase(),
-              getTeamLetter(demoPlayer.teamNumber)
+              playerTeamLetter
             );
           });
 
@@ -63,19 +74,108 @@ export async function parseDemo(opts: {
           break;
         }
 
+        case "player_hurt": {
+          const {
+            armor,
+            dmg_armor: dmgArmor,
+            dmg_health: dmgHealth,
+            health,
+            hitgroup: hitGroup,
+            weapon,
+          } = event;
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "PlayerHurtEvent",
+            eventTime: state.getTime(),
+            victim: {
+              steamId: event.player.steamId,
+              team: getTeamLetter(event.player.teamNumber),
+              location: {
+                x: event.player.position.x,
+                y: event.player.position.y,
+                z: event.player.position.z,
+                name: event.player.placeName,
+              },
+            },
+            attacker: event.attackerEntity
+              ? {
+                  steamId: event.attackerEntity.steamId,
+                  team: getTeamLetter(event.attackerEntity.teamNumber),
+                  location: getLocation(event.attackerEntity),
+                }
+              : undefined,
+            armor,
+            dmgArmor,
+            dmgHealth,
+            health,
+            hitGroup,
+            weapon,
+          });
+        }
+
         case "player_death": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "DeathEvent",
             eventTime: state.getTime(),
-            attacker: {
-              steamId: event.attackerEntity?.steamId || "UNKNOWN",
-              team: getTeamLetter(event.attackerEntity?.teamNumber),
-            },
+            attacker: event.attackerEntity
+              ? {
+                  steamId: event.attackerEntity?.steamId || "UNKNOWN",
+                  team: getTeamLetter(event.attackerEntity?.teamNumber),
+                  location: {
+                    ...event.attackerEntity.position,
+                    name: event.attackerEntity.placeName,
+                  },
+                }
+              : undefined,
             victim: {
               steamId: event.player.steamId,
               team: getTeamLetter(event.player.teamNumber),
+              location: {
+                ...event.player.position,
+                name: event.player.placeName,
+              },
             },
             weapon: event.weapon,
+          });
+          break;
+        }
+
+        case "bomb_dropped": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventTime: state.getTime(),
+            eventKind: "BombDroppedEvent",
+            location: {
+              ...event.entity.position,
+              name: event.player.placeName,
+            },
+            dropper: { steamId: event.player.steamId },
+          });
+          break;
+        }
+
+        case "bomb_pickup": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventTime: state.getTime(),
+            eventKind: "BombPickedUpEvent",
+            picker: {
+              steamId: event.player.steamId,
+              location: getLocation(event.player),
+            },
+          });
+          break;
+        }
+
+        case "bomb_beginplant": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "BombBeginPlantEvent",
+            eventTime: state.getTime(),
+            planter: {
+              steamId: event.player.steamId,
+              location: {
+                ...event.player.position,
+                name: event.player.placeName,
+              },
+            },
+            site: `???`, // event.site
           });
           break;
         }
@@ -84,8 +184,31 @@ export async function parseDemo(opts: {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombPlantedEvent",
             eventTime: state.getTime(),
-            planter: { steamId: event.player.steamId },
-            location: event.player.placeName,
+            planter: {
+              steamId: event.player.steamId,
+              location: {
+                ...event.player.position,
+                name: event.player.placeName,
+              },
+            },
+            site: `???`, // event.site
+          });
+          break;
+        }
+
+        case "bomb_begindefuse": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "BombBeginDefuseEvent",
+            eventTime: state.getTime(),
+            defuser: {
+              steamId: event.player.steamId,
+              hasKit: event.player.hasDefuser,
+              location: {
+                ...event.player.position,
+                name: event.player.placeName,
+              },
+            },
+            site: `???`, // event.site
           });
           break;
         }
@@ -94,8 +217,24 @@ export async function parseDemo(opts: {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombDefusedEvent",
             eventTime: state.getTime(),
-            defuser: { steamId: event.player.steamId },
-            location: event.player.placeName,
+            defuser: {
+              steamId: event.player.steamId,
+              hasKit: event.player.hasDefuser,
+              location: {
+                ...event.player.position,
+                name: event.player.placeName,
+              },
+            },
+            site: `???`, // event.site
+          });
+          break;
+        }
+
+        case "bomb_exploded": {
+          demoWriter.recordEvent(state.getRound(), {
+            eventKind: "BombExplodedEvent",
+            eventTime: state.getTime(),
+            site: `???`, // event.site
           });
           break;
         }
@@ -147,12 +286,16 @@ export async function parseDemo(opts: {
       }
     });
 
+    demoFile.on("error", (error) => {
+      reject(error);
+    });
+
     demoFile.on("end", (e) => {
-      functions.logger.warn("unprocesssed gameEvents", { unhandledEventKinds });
+      functions.logger.warn("unprocessed gameEvents", { unhandledEventKinds });
 
       if (e.error) {
         console.error("Error during parsing:", e.error);
-        process.exitCode = 1;
+        reject(e.error);
       }
 
       const finalTeamScores: {
@@ -174,7 +317,23 @@ export async function parseDemo(opts: {
         };
       });
 
-      demoWriter.finalise({ fileName, uploaderUid, finalTeamScores });
+      const {
+        header: { mapName, serverName, playbackTicks, playbackTime },
+        conVars: { vars },
+      } = demoFile;
+      const steamworksSessionIdServer =
+        vars.get("steamworks_sessionid_server") ?? "";
+
+      demoWriter.finalise({
+        fileName,
+        uploaderUid,
+        finalTeamScores,
+        mapName,
+        serverName,
+        playbackTicks,
+        playbackTime,
+        steamworksSessionIdServer,
+      });
       resolve(demoWriter.get());
     });
 
