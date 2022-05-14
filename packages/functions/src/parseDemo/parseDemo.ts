@@ -5,8 +5,57 @@ import {
   ParsedDemoDocument_team_score,
   TeamLetter,
   EntityLocation,
-} from "../models/firestore/parsedDemo";
-import { ParsedDemoWriter } from "./parsedDemoWriter";
+} from "../models/firestore/ParsedDemo";
+import { ParsedDemoWriter } from "./ParsedDemoWriter";
+
+enum DemoRoundEndReason {
+  TargetBombed = 1, // Target Successfully Bombed!
+  // 2/3 not in use in CSGO
+  TerroristsEscaped = 4, // The terrorists have escaped!
+  CTStoppedEscape = 5, // The CTs have prevented most of the terrorists from escaping!
+  TerroristsStopped = 6, // Escaping terrorists have all been neutralized!
+  BombDefused = 7, // The bomb has been defused!
+  CTWin = 8, // Counter-Terrorists Win!
+  TerroristWin = 9, // Terrorists Win!
+  Draw = 10, // Round Draw!
+  HostagesRescued = 11, // All Hostages have been rescued!
+  TargetSaved = 12, // Target has been saved!
+  HostagesNotRescued = 13, // Hostages have not been rescued!
+  TerroristsNotEscaped = 14, // Terrorists have not escaped!
+  GameStart = 16, // Game Commencing!
+  // 15 not in use in CSGO
+  TerroristsSurrender = 17, // Terrorists Surrender
+  CTSurrender = 18, // CTs Surrender
+  TerroristsPlanted = 19, // Terrorists Planted the bomb
+  CTsReachedHostage = 20, // CTs Reached the hostage
+}
+
+function getRoundEndReason(reasonValue: DemoRoundEndReason) {
+  switch (reasonValue) {
+    case DemoRoundEndReason.TargetBombed:
+      return "TargetBombed";
+    case DemoRoundEndReason.BombDefused:
+      return "BombDefused";
+    case DemoRoundEndReason.CTWin:
+      return "CTWin";
+    case DemoRoundEndReason.TerroristWin:
+      return "TerroristWin";
+    case DemoRoundEndReason.Draw:
+      return "Draw";
+    case DemoRoundEndReason.HostagesRescued:
+      return "HostagesRescued";
+    case DemoRoundEndReason.HostagesNotRescued:
+      return "HostagesNotRescued";
+    case DemoRoundEndReason.GameStart:
+      return "GameStart";
+    case DemoRoundEndReason.TerroristsSurrender:
+      return "TerroristsSurrender";
+    case DemoRoundEndReason.CTSurrender:
+      return "CTSurrender";
+    default:
+      return "Unknown";
+  }
+}
 
 function getTeamLetter(teamNumber?: number): TeamLetter {
   switch (teamNumber) {
@@ -51,6 +100,8 @@ export async function parseDemo(opts: {
     } = {};
 
     demoFile.gameEvents.on("event", ({ name, event }) => {
+      const round = state.getRound();
+      const eventTime = state.getTime();
       switch (name) {
         case "round_start": {
           // Any player present at the start of a round
@@ -68,7 +119,7 @@ export async function parseDemo(opts: {
           });
 
           demoWriter.recordEvent(state.getRound(), {
-            eventTime: state.getTime(),
+            eventTime,
             eventKind: "RoundStartEvent",
           });
           break;
@@ -85,7 +136,7 @@ export async function parseDemo(opts: {
           } = event;
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "PlayerHurtEvent",
-            eventTime: state.getTime(),
+            eventTime,
             victim: {
               steamId: event.player.steamId,
               team: getTeamLetter(event.player.teamNumber),
@@ -115,7 +166,7 @@ export async function parseDemo(opts: {
         case "player_death": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "DeathEvent",
-            eventTime: state.getTime(),
+            eventTime,
             attacker: event.attackerEntity
               ? {
                   steamId: event.attackerEntity?.steamId || "UNKNOWN",
@@ -141,7 +192,7 @@ export async function parseDemo(opts: {
 
         case "bomb_dropped": {
           demoWriter.recordEvent(state.getRound(), {
-            eventTime: state.getTime(),
+            eventTime,
             eventKind: "BombDroppedEvent",
             location: {
               ...event.entity.position,
@@ -154,7 +205,7 @@ export async function parseDemo(opts: {
 
         case "bomb_pickup": {
           demoWriter.recordEvent(state.getRound(), {
-            eventTime: state.getTime(),
+            eventTime,
             eventKind: "BombPickedUpEvent",
             picker: {
               steamId: event.player.steamId,
@@ -167,7 +218,7 @@ export async function parseDemo(opts: {
         case "bomb_beginplant": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombBeginPlantEvent",
-            eventTime: state.getTime(),
+            eventTime,
             planter: {
               steamId: event.player.steamId,
               location: {
@@ -183,7 +234,7 @@ export async function parseDemo(opts: {
         case "bomb_planted": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombPlantedEvent",
-            eventTime: state.getTime(),
+            eventTime,
             planter: {
               steamId: event.player.steamId,
               location: {
@@ -199,7 +250,7 @@ export async function parseDemo(opts: {
         case "bomb_begindefuse": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombBeginDefuseEvent",
-            eventTime: state.getTime(),
+            eventTime,
             defuser: {
               steamId: event.player.steamId,
               hasKit: event.player.hasDefuser,
@@ -216,7 +267,7 @@ export async function parseDemo(opts: {
         case "bomb_defused": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombDefusedEvent",
-            eventTime: state.getTime(),
+            eventTime,
             defuser: {
               steamId: event.player.steamId,
               hasKit: event.player.hasDefuser,
@@ -233,7 +284,7 @@ export async function parseDemo(opts: {
         case "bomb_exploded": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "BombExplodedEvent",
-            eventTime: state.getTime(),
+            eventTime,
             site: `???`, // event.site
           });
           break;
@@ -243,24 +294,28 @@ export async function parseDemo(opts: {
         case "round_end": {
           // Save player scores
           demoFile.players.forEach((demoPlayer) => {
-            const { score, kills, assists, deaths } = demoPlayer;
-            demoWriter.updatePlayerScore(
-              demoPlayer.steamId,
-              (currentScore) => ({
-                ...currentScore,
-                score,
-                kills,
-                assists,
-                deaths,
-              })
+            const { steamId, score, kills, assists, deaths, mvps, matchStats } =
+              demoPlayer;
+            demoWriter.updatePlayerScore(steamId, (currentScore) => ({
+              ...currentScore,
+              score,
+              kills,
+              assists,
+              deaths,
+              mvps,
+            }));
+            demoWriter.addPlayerRoundStats(
+              steamId,
+              round,
+              matchStats[round - 2]
             );
           });
 
-          demoWriter.recordEvent(state.getRound(), {
+          demoWriter.recordEvent(round, {
             eventKind: "RoundEndEvent",
-            eventTime: state.getTime(),
+            eventTime,
             phase: demoFile.gameRules.phase,
-            reason: event.reason.toString(),
+            reason: getRoundEndReason(event.reason),
           });
           break;
         }
@@ -269,7 +324,7 @@ export async function parseDemo(opts: {
         case "round_officially_ended": {
           demoWriter.recordEvent(state.getRound(), {
             eventKind: "RoundOfficialEndEvent",
-            eventTime: state.getTime(),
+            eventTime,
           });
           break;
         }

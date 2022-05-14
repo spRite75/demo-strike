@@ -1,4 +1,5 @@
 import assert from "assert";
+import { IPlayerRoundStats } from "demofile";
 import * as functions from "firebase-functions";
 import {
   ParsedDemoDocument,
@@ -8,7 +9,7 @@ import {
   ParsedDemoDocument_team_player_score,
   ParsedDemoDocument_team_score,
   TeamLetter,
-} from "../models/firestore/parsedDemo";
+} from "../models/firestore/ParsedDemo";
 
 export class ParsedDemoWriter {
   private demo: ParsedDemoDocument = {
@@ -66,7 +67,8 @@ export class ParsedDemoWriter {
       this.players.push({
         steamId,
         displayName,
-        playerScore: { assists: 0, deaths: 0, kills: 0, score: 0 },
+        playerScore: { assists: 0, deaths: 0, kills: 0, score: 0, mvps: 0 },
+        playerRoundStats: [],
       });
   }
 
@@ -79,6 +81,16 @@ export class ParsedDemoWriter {
     const player = this.getPlayer(steamId);
     if (!player) return;
     player.playerScore = updater(player.playerScore);
+  }
+
+  addPlayerRoundStats(
+    steamId: string,
+    roundNumber: number,
+    stats: IPlayerRoundStats
+  ) {
+    const player = this.getPlayer(steamId);
+    if (!player) return;
+    player.playerRoundStats.push({ roundNumber, ...stats });
   }
 
   setPlayerTeam(steamId: string, phase: string, teamLetter: TeamLetter) {

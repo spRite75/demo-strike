@@ -1,3 +1,5 @@
+import { IPlayerRoundStats } from "demofile";
+
 export interface ParsedDemoDocument {
   id: string;
   uploadersUids: string[];
@@ -18,6 +20,18 @@ export interface ParsedDemoDocument_round {
 
 export type TeamLetter = "T" | "CT" | "???";
 export type SiteLetter = "A" | "B" | "???";
+export type RoundEndReason =
+  | "TargetBombed"
+  | "BombDefused"
+  | "CTWin"
+  | "TerroristWin"
+  | "Draw"
+  | "HostagesRescued"
+  | "HostagesNotRescued"
+  | "GameStart"
+  | "TerroristsSurrender"
+  | "CTSurrender"
+  | "Unknown";
 
 export interface EntityLocation {
   x: number;
@@ -94,7 +108,7 @@ export type ParsedDemoDocument_round_event = {
   | {
       eventKind: "RoundEndEvent";
       phase: string;
-      reason: string;
+      reason: RoundEndReason;
     }
   | {
       eventKind: "RoundOfficialEndEvent";
@@ -112,6 +126,7 @@ export interface ParsedDemoDocument_team_player {
   steamId: string;
   displayName: string;
   playerScore: ParsedDemoDocument_team_player_score;
+  playerRoundStats: ({ roundNumber: number } & IPlayerRoundStats)[];
 }
 
 export interface ParsedDemoDocument_team_player_score {
@@ -119,6 +134,7 @@ export interface ParsedDemoDocument_team_player_score {
   deaths: number;
   assists: number;
   score: number;
+  mvps: number;
 }
 
 export interface ParsedDemoDocument_team_score {

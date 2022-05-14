@@ -3,8 +3,8 @@ import {
   QueryDocumentSnapshot,
 } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
-import { ProfileDocument } from "./profile";
-import { ParsedDemoDocument } from "./parsedDemo";
+import { ProfileDocument } from "./Profile";
+import { ParsedDemoDocument } from "./ParsedDemo";
 
 function getTypedCollection<T>(collectionName: string) {
   const converter: FirestoreDataConverter<T> = {
