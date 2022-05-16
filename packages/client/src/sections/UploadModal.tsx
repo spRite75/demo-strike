@@ -5,58 +5,35 @@ import { useUploadFile } from "react-firebase-hooks/storage";
 import filesize from "filesize";
 import { useFirebase } from "../hooks/useFirebase";
 import { useUploadDemosMutation } from "../generated/graphql";
+import { useDropzoneUpload } from "../hooks/useDropzoneUpload";
 
 export function UploadModal(props: { show: boolean; close: () => void }) {
   const { show, close } = props;
-  const firebase = useFirebase();
-  const [uploadFile, _, status, error] = useUploadFile();
-  const [uploadInfo] = useUploadDemosMutation();
-  const uploadProgessText = status
-    ? `${Math.floor((status.bytesTransferred / status.totalBytes) * 100)}% `
+  const {
+    selectedFiles,
+    inProgressFile,
+    completedFiles,
+    uploadStatus,
+    reset,
+    upload,
+    dropzone: { getRootProps, getInputProps, isDragActive },
+  } = useDropzoneUpload();
+
+  const uploadProgessText = uploadStatus
+    ? `${Math.floor(
+        (uploadStatus.bytesTransferred / uploadStatus.totalBytes) * 100
+      )}% `
     : "";
 
-  // files to upload
-  const [files, setFiles] = useState<File[]>([]);
-  // current file being uploaded
-  const [currentFile, setCurrentFile] = useState<File>();
-  // files uploaded
-  const [completedFiles, setCompletedFiles] = useState<File[]>([]);
-
   const cancel = () => {
-    setFiles([]);
+    reset();
     close();
   };
+
   const accept = async () => {
-    for (const file of files) {
-      setCurrentFile(file);
-      const storageRef = firebase.getStorageRef(file.name);
-      await uploadFile(storageRef, file);
-      await uploadInfo({
-        variables: {
-          input: {
-            demos: [
-              {
-                fileName: file.name,
-                lastModified: file.lastModified.toString(),
-              },
-            ],
-          },
-        },
-      });
-      setCompletedFiles((completedFiles) => completedFiles.concat(file));
-    }
-
+    await upload();
     close();
   };
-
-  const onDrop = useCallback<NonNullable<DropzoneOptions["onDrop"]>>(
-    (acceptedFiles) => {
-      setFiles((files) => files.concat(acceptedFiles));
-    },
-    []
-  );
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
     <Modal open={show} onClickBackdrop={cancel}>
@@ -64,16 +41,21 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
 
       <Modal.Body>
         Upload demos for processing...
-        {!!files.length && (
+        {!!selectedFiles.length && (
           <>
             <Divider />
             <aside>
               <div className="font-bold">Files:</div>
-              {files.map((file, i) => (
+              {selectedFiles.map((file, i) => (
                 <div key={`${file.size}-${file.name}`}>
                   <div>{file.name}</div>
                   <div className="text-sm text-right opacity-50">
-                    {currentFile === file && <span>{uploadProgessText}</span>}
+                    {inProgressFile === file && (
+                      <span>{uploadProgessText}</span>
+                    )}
+                    {completedFiles.some(
+                      (completedFile) => completedFile === file
+                    ) && <span>✔</span>}
                     {filesize(file.size)}
                   </div>
                 </div>
