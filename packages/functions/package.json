@@ -3,8 +3,10 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build:copy-graphql-schema": "mkdir -p lib/graphql && cp src/graphql/schema.graphql lib/graphql/schema.graphql",
-    "build": "npm run build:copy-graphql-schema && tsc",
-    "build:watch": "npm run build:copy-graphql-schema && tsc -w",
+    "build:copy-protobuf-files": "mkdir -p lib/parseDemoInfo && cp -r src/parseDemoInfo/proto lib/parseDemoInfo/proto",
+    "prebuild": "npm run build:copy-graphql-schema && npm run build:copy-protobuf-files",
+    "build": "tsc",
+    "build:watch": "npm run prebuild && tsc -w",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -24,7 +26,9 @@
     "demofile": "^2.9.2",
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.18.0",
-    "graphql": "^16.4.0"
+    "graphql": "^16.4.0",
+    "protobufjs": "~6.11.2",
+    "steamid": "^2.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.0",

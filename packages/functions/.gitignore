@@ -1,7 +1,5 @@
-# Compiled JavaScript files
-lib/**/*.js
-lib/**/*.js.map
-lib/**/*.graphql
+# Compiled files
+lib/
 
 # TypeScript v1 declaration files
 typings/

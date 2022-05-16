@@ -15,7 +15,7 @@ input CreateProfileInput {
 type UserProfile {
   id: ID!
   displayName: String!
-  steamId: String
+  steam64Id: String
 }
 
 input UploadDemosInput {

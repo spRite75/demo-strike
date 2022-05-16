@@ -109,10 +109,9 @@ export async function parseDemo(opts: {
           demoFile.players.forEach((demoPlayer) => {
             const playerTeamLetter = getTeamLetter(demoPlayer.teamNumber);
             if (demoPlayer.isFakePlayer) return;
-
-            demoWriter.addPlayer(demoPlayer.steamId, demoPlayer.name);
+            demoWriter.addPlayer(demoPlayer.steam64Id, demoPlayer.name);
             demoWriter.setPlayerTeam(
-              demoPlayer.steamId,
+              demoPlayer.steam64Id,
               state.getPhase(),
               playerTeamLetter
             );
@@ -138,7 +137,7 @@ export async function parseDemo(opts: {
             eventKind: "PlayerHurtEvent",
             eventTime,
             victim: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               team: getTeamLetter(event.player.teamNumber),
               location: {
                 x: event.player.position.x,
@@ -149,7 +148,7 @@ export async function parseDemo(opts: {
             },
             attacker: event.attackerEntity
               ? {
-                  steamId: event.attackerEntity.steamId,
+                  steam64Id: event.attackerEntity.steam64Id,
                   team: getTeamLetter(event.attackerEntity.teamNumber),
                   location: getLocation(event.attackerEntity),
                 }
@@ -169,7 +168,7 @@ export async function parseDemo(opts: {
             eventTime,
             attacker: event.attackerEntity
               ? {
-                  steamId: event.attackerEntity?.steamId || "UNKNOWN",
+                  steam64Id: event.attackerEntity?.steam64Id || "UNKNOWN",
                   team: getTeamLetter(event.attackerEntity?.teamNumber),
                   location: {
                     ...event.attackerEntity.position,
@@ -178,7 +177,7 @@ export async function parseDemo(opts: {
                 }
               : undefined,
             victim: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               team: getTeamLetter(event.player.teamNumber),
               location: {
                 ...event.player.position,
@@ -198,7 +197,7 @@ export async function parseDemo(opts: {
               ...event.entity.position,
               name: event.player.placeName,
             },
-            dropper: { steamId: event.player.steamId },
+            dropper: { steam64Id: event.player.steam64Id },
           });
           break;
         }
@@ -208,7 +207,7 @@ export async function parseDemo(opts: {
             eventTime,
             eventKind: "BombPickedUpEvent",
             picker: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               location: getLocation(event.player),
             },
           });
@@ -220,7 +219,7 @@ export async function parseDemo(opts: {
             eventKind: "BombBeginPlantEvent",
             eventTime,
             planter: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               location: {
                 ...event.player.position,
                 name: event.player.placeName,
@@ -236,7 +235,7 @@ export async function parseDemo(opts: {
             eventKind: "BombPlantedEvent",
             eventTime,
             planter: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               location: {
                 ...event.player.position,
                 name: event.player.placeName,
@@ -252,7 +251,7 @@ export async function parseDemo(opts: {
             eventKind: "BombBeginDefuseEvent",
             eventTime,
             defuser: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               hasKit: event.player.hasDefuser,
               location: {
                 ...event.player.position,
@@ -269,7 +268,7 @@ export async function parseDemo(opts: {
             eventKind: "BombDefusedEvent",
             eventTime,
             defuser: {
-              steamId: event.player.steamId,
+              steam64Id: event.player.steam64Id,
               hasKit: event.player.hasDefuser,
               location: {
                 ...event.player.position,
@@ -294,9 +293,16 @@ export async function parseDemo(opts: {
         case "round_end": {
           // Save player scores
           demoFile.players.forEach((demoPlayer) => {
-            const { steamId, score, kills, assists, deaths, mvps, matchStats } =
-              demoPlayer;
-            demoWriter.updatePlayerScore(steamId, (currentScore) => ({
+            const {
+              steam64Id,
+              score,
+              kills,
+              assists,
+              deaths,
+              mvps,
+              matchStats,
+            } = demoPlayer;
+            demoWriter.updatePlayerScore(steam64Id, (currentScore) => ({
               ...currentScore,
               score,
               kills,
@@ -305,7 +311,7 @@ export async function parseDemo(opts: {
               mvps,
             }));
             demoWriter.addPlayerRoundStats(
-              steamId,
+              steam64Id,
               round,
               matchStats[round - 2]
             );

@@ -15,7 +15,7 @@ export class ParsedDemoWriter {
   private demo: ParsedDemoDocument = {
     id: "",
     uploadersUids: [],
-    playersSteamIds: [],
+    playersSteam64Ids: [],
     teams: [],
     rounds: [],
     mapName: "",
@@ -31,11 +31,11 @@ export class ParsedDemoWriter {
 
   isValid(): boolean {
     try {
-      const { id, uploadersUids, playersSteamIds, rounds, teams } = this.demo;
+      const { id, uploadersUids, playersSteam64Ids, rounds, teams } = this.demo;
 
       assert.notEqual(id, "");
       assert.ok(!!uploadersUids.length);
-      assert.equal(playersSteamIds.length, 10);
+      assert.equal(playersSteam64Ids.length, 10);
       assert.ok(!!rounds.length);
       assert.equal(teams.length, 2);
 
@@ -57,15 +57,15 @@ export class ParsedDemoWriter {
     return round;
   }
 
-  private getPlayer(steamId: string) {
-    return this.players.find((player) => player.steamId === steamId);
+  private getPlayer(steam64Id: string) {
+    return this.players.find((player) => player.steam64Id === steam64Id);
   }
 
   // Adds a player if they haven't been addeed already
-  addPlayer(steamId: string, displayName: string) {
-    if (!this.getPlayer(steamId))
+  addPlayer(steam64Id: string, displayName: string) {
+    if (!this.getPlayer(steam64Id))
       this.players.push({
-        steamId,
+        steam64Id,
         displayName,
         playerScore: { assists: 0, deaths: 0, kills: 0, score: 0, mvps: 0 },
         playerRoundStats: [],
@@ -73,28 +73,28 @@ export class ParsedDemoWriter {
   }
 
   updatePlayerScore(
-    steamId: string,
+    steam64Id: string,
     updater: (
       currentScore: ParsedDemoDocument_team_player_score
     ) => ParsedDemoDocument_team_player_score
   ) {
-    const player = this.getPlayer(steamId);
+    const player = this.getPlayer(steam64Id);
     if (!player) return;
     player.playerScore = updater(player.playerScore);
   }
 
   addPlayerRoundStats(
-    steamId: string,
+    steam64Id: string,
     roundNumber: number,
     stats: IPlayerRoundStats
   ) {
-    const player = this.getPlayer(steamId);
+    const player = this.getPlayer(steam64Id);
     if (!player) return;
     player.playerRoundStats.push({ roundNumber, ...stats });
   }
 
-  setPlayerTeam(steamId: string, phase: string, teamLetter: TeamLetter) {
-    const player = this.getPlayer(steamId);
+  setPlayerTeam(steam64Id: string, phase: string, teamLetter: TeamLetter) {
+    const player = this.getPlayer(steam64Id);
     if (!player) return;
     switch (phase) {
       case "first":
@@ -173,8 +173,10 @@ export class ParsedDemoWriter {
       }
     );
 
-    // Set list of steamIds in the match
-    this.demo.playersSteamIds = this.players.map((player) => player.steamId);
+    // Set list of steam64Ids in the match
+    this.demo.playersSteam64Ids = this.players.map(
+      (player) => player.steam64Id
+    );
   }
 
   get() {
