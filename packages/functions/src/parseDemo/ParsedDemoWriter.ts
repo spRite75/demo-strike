@@ -22,6 +22,8 @@ export class ParsedDemoWriter {
     serverName: "",
     playbackTicks: 0,
     playbackTime: 0,
+    lastModifiedTimestamp: "",
+    matchTimestamp: "",
     steamworksSessionIdServer: "",
   };
 

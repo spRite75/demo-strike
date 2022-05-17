@@ -1,10 +1,5 @@
-import { useCallback, useState } from "react";
 import { Button, Divider, Modal } from "react-daisyui";
-import { DropzoneOptions, useDropzone } from "react-dropzone";
-import { useUploadFile } from "react-firebase-hooks/storage";
 import filesize from "filesize";
-import { useFirebase } from "../hooks/useFirebase";
-import { useUploadDemosMutation } from "../generated/graphql";
 import { useDropzoneUpload } from "../hooks/useDropzoneUpload";
 
 export function UploadModal(props: { show: boolean; close: () => void }) {

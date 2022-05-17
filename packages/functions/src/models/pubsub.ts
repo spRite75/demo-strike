@@ -20,12 +20,15 @@ function pubsubGenerator<T>(
 export const demoUploadsPubsub = pubsubGenerator<{
   filePath: string;
   lastModified: string;
+  hasInfoFile: boolean;
   uploaderUid: string;
 }>("demo-uploads", ({ json }) => {
   if (
     typeof json === "object" &&
     typeof json.filePath === "string" &&
-    typeof json.lastModified === "string"
+    typeof json.lastModified === "string" &&
+    typeof json.hasInfoFile === "boolean" &&
+    typeof json.uploaderUid === "string"
   )
     return json;
   functions.logger.error("Invalid DemoUploadMessage", json);

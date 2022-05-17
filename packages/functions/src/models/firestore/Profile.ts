@@ -1,6 +1,6 @@
 export interface ProfileDocument {
   readonly id: string;
   displayName: string;
-  steamId?: string;
+  steam64Id?: string;
   parsedDemos: string[];
 }

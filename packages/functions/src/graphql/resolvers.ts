@@ -61,12 +61,20 @@ export const resolvers: Resolvers = {
       const pubsub = new PubSub();
       const topic = pubsub.topic(demoUploadsPubsub.topicName);
 
+      const demFiles = demos.filter((demo) => demo.fileName.endsWith(".dem"));
+      const infoFiles = demos.filter((demo) =>
+        demo.fileName.endsWith(".dem.info")
+      );
+
       await Promise.all(
-        demos.map(async (demo) => {
+        demFiles.map(async (demo) => {
           await topic.publishMessage(
             demoUploadsPubsub.create({
               filePath: `demos/u/${uid}/o/${demo.fileName}`,
               lastModified: demo.lastModified,
+              hasInfoFile: infoFiles.some(
+                (infoFile) => infoFile.fileName === `${demo.fileName}.info`
+              ),
               uploaderUid: uid,
             })
           );

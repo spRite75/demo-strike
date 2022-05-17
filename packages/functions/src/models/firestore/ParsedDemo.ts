@@ -3,13 +3,15 @@ import { IPlayerRoundStats } from "demofile";
 export interface ParsedDemoDocument {
   id: string;
   uploadersUids: string[];
-  playersSteamIds: string[];
+  playersSteam64Ids: string[];
   rounds: ParsedDemoDocument_round[];
   teams: ParsedDemoDocument_team[];
   mapName: string;
   serverName: string;
   playbackTicks: number;
   playbackTime: number;
+  lastModifiedTimestamp: string;
+  matchTimestamp: string;
   steamworksSessionIdServer: string;
 }
 
@@ -50,11 +52,11 @@ export type ParsedDemoDocument_round_event = {
   | {
       eventKind: "PlayerHurtEvent";
       attacker?: {
-        steamId: string;
+        steam64Id: string;
         team: TeamLetter;
         location: EntityLocation;
       };
-      victim: { steamId: string; team: TeamLetter; location: EntityLocation };
+      victim: { steam64Id: string; team: TeamLetter; location: EntityLocation };
       health: number;
       armor: number;
       dmgHealth: number;
@@ -65,40 +67,40 @@ export type ParsedDemoDocument_round_event = {
   | {
       eventKind: "DeathEvent";
       attacker?: {
-        steamId: string;
+        steam64Id: string;
         team: TeamLetter;
         location: EntityLocation;
       };
-      victim: { steamId: string; team: TeamLetter; location: EntityLocation };
+      victim: { steam64Id: string; team: TeamLetter; location: EntityLocation };
       weapon: string;
     }
   | {
       eventKind: "BombDroppedEvent";
       location: EntityLocation;
-      dropper: { steamId: string };
+      dropper: { steam64Id: string };
     }
   | {
       eventKind: "BombPickedUpEvent";
-      picker: { steamId: string; location: EntityLocation };
+      picker: { steam64Id: string; location: EntityLocation };
     }
   | {
       eventKind: "BombBeginPlantEvent";
-      planter: { steamId: string; location: EntityLocation };
+      planter: { steam64Id: string; location: EntityLocation };
       site: SiteLetter;
     }
   | {
       eventKind: "BombPlantedEvent";
-      planter: { steamId: string; location: EntityLocation };
+      planter: { steam64Id: string; location: EntityLocation };
       site: SiteLetter;
     }
   | {
       eventKind: "BombBeginDefuseEvent";
-      defuser: { steamId: string; hasKit: boolean; location: EntityLocation };
+      defuser: { steam64Id: string; hasKit: boolean; location: EntityLocation };
       site: SiteLetter;
     }
   | {
       eventKind: "BombDefusedEvent";
-      defuser: { steamId: string; hasKit: boolean; location: EntityLocation };
+      defuser: { steam64Id: string; hasKit: boolean; location: EntityLocation };
       site: SiteLetter;
     }
   | {
@@ -123,7 +125,7 @@ export interface ParsedDemoDocument_team {
 }
 
 export interface ParsedDemoDocument_team_player {
-  steamId: string;
+  steam64Id: string;
   displayName: string;
   playerScore: ParsedDemoDocument_team_player_score;
   playerRoundStats: ({ roundNumber: number } & IPlayerRoundStats)[];
