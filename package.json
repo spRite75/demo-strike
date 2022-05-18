@@ -30,7 +30,6 @@
     "@graphql-codegen/typescript-operations": "2.3.7",
     "@graphql-codegen/typescript-react-apollo": "3.2.13",
     "@graphql-codegen/typescript-resolvers": "2.6.3",
-    "concurrently": "^7.1.0",
-    "graphql-scalars": "^1.17.0"
+    "concurrently": "^7.1.0"
   }
 }

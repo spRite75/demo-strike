@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { useCallback, useState } from "react";
 import { DropzoneOptions, useDropzone } from "react-dropzone";
 import { useUploadFile } from "react-firebase-hooks/storage";
@@ -44,7 +45,7 @@ export function useDropzoneUpload() {
         input: {
           demos: localCompletedFiles.map((file) => ({
             fileName: file.name,
-            lastModified: file.lastModified.toString(),
+            lastModified: DateTime.fromMillis(file.lastModified),
           })),
         },
       },

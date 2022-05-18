@@ -1,6 +1,4 @@
-import assert from "assert";
 import { IPlayerRoundStats } from "demofile";
-import * as functions from "firebase-functions";
 import {
   ParsedDemoDocument,
   ParsedDemoDocument_round,
@@ -13,8 +11,6 @@ import {
 
 export class ParsedDemoWriter {
   private demo: ParsedDemoDocument = {
-    id: "",
-    uploadersUids: [],
     playersSteam64Ids: [],
     teams: [],
     rounds: [],
@@ -22,31 +18,12 @@ export class ParsedDemoWriter {
     serverName: "",
     playbackTicks: 0,
     playbackTime: 0,
-    lastModifiedTimestamp: "",
-    matchTimestamp: "",
     steamworksSessionIdServer: "",
   };
 
   private players: (ParsedDemoDocument_team_player & {
     finalTeamLetter?: TeamLetter;
   })[] = [];
-
-  isValid(): boolean {
-    try {
-      const { id, uploadersUids, playersSteam64Ids, rounds, teams } = this.demo;
-
-      assert.notEqual(id, "");
-      assert.ok(!!uploadersUids.length);
-      assert.equal(playersSteam64Ids.length, 10);
-      assert.ok(!!rounds.length);
-      assert.equal(teams.length, 2);
-
-      return true;
-    } catch (ex) {
-      functions.logger.error("Demo was not valid!", ex);
-      return false;
-    }
-  }
 
   private getRound(roundNumber: number): ParsedDemoDocument_round {
     const round = this.demo.rounds.find(
@@ -121,8 +98,6 @@ export class ParsedDemoWriter {
   }
 
   finalise(opts: {
-    fileName: string;
-    uploaderUid: string;
     finalTeamScores: {
       CT: ParsedDemoDocument_team_score;
       T: ParsedDemoDocument_team_score;
@@ -134,8 +109,6 @@ export class ParsedDemoWriter {
     steamworksSessionIdServer: string;
   }) {
     const {
-      fileName,
-      uploaderUid,
       finalTeamScores,
       mapName,
       serverName,
@@ -145,17 +118,11 @@ export class ParsedDemoWriter {
     } = opts;
 
     // Set ParsedDemo ID and other metadata
-    this.demo.id = fileName;
     this.demo.mapName = mapName;
     this.demo.serverName = serverName;
     this.demo.playbackTicks = playbackTicks;
     this.demo.playbackTime = playbackTime;
     this.demo.steamworksSessionIdServer = steamworksSessionIdServer;
-
-    // Add uploader to list of uploader UIDs
-    if (!this.demo.uploadersUids.some((uid) => uid === uploaderUid)) {
-      this.demo.uploadersUids.push(uploaderUid);
-    }
 
     // Create teams and add players
     this.demo.teams.push(

@@ -2,7 +2,13 @@ import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
 import { DateTime } from "luxon";
 
-export async function parseInfo(infoBuffer: Buffer) {
+export interface ParsedInfo {
+  officialMatchId: string;
+  officialMatchTimestamp: string;
+  steam64Ids: string[];
+}
+
+export function parseInfo(infoBuffer: Buffer): ParsedInfo {
   const demofileMessage = CDataGCCStrike15V2MatchInfo.decode(infoBuffer);
   const { matchid, matchtime, roundstatsall } = demofileMessage;
 

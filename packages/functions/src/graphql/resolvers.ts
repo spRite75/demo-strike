@@ -4,8 +4,10 @@ import * as functions from "firebase-functions";
 import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
 import { demoUploadsPubsub } from "../models/pubsub";
+import { dateTimeScalar } from "./scalars";
 
 export const resolvers: Resolvers = {
+  DateTime: dateTimeScalar,
   Query: {
     hello: async (_, __, { uid }) => {
       const profile =

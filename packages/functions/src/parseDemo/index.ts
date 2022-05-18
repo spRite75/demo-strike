@@ -21,23 +21,55 @@ export const handler = functions.pubsub
 
     const fileName = filePath.split("/").pop() || "";
 
-    const file = await load(filePath);
-
     try {
       if (fileName.endsWith(".dem")) {
-        const demoInfo =
-          hasInfoFile && (await parseInfo(await load(`${filePath}.info`)));
+        const demoInfoPromise = hasInfoFile
+          ? load(`${filePath}.info`).then(parseInfo)
+          : undefined;
+        const parsedDemoPromise = load(filePath).then(parseDemo);
 
-        console.log(demoInfo); // TODO: use demoInfo in identifying demo start time and ID
-        const parsedDemo = await parseDemo({
-          fileName,
-          uploaderUid,
-          demoBuffer: file,
-        });
-        await parsedDemosCollection().doc(parsedDemo.id).set(parsedDemo);
-        await profilesCollection()
-          .doc(uploaderUid)
-          .update({ parsedDemos: FieldValue.arrayUnion(parsedDemo.id) });
+        const [demoInfo, parsedDemo] = await Promise.all([
+          demoInfoPromise,
+          parsedDemoPromise,
+        ]);
+
+        if (demoInfo) {
+          const { officialMatchId, steam64Ids } = demoInfo;
+          const { playersSteam64Ids } = parsedDemo;
+          if (
+            steam64Ids.sort().join(",") === playersSteam64Ids.sort().join(",")
+          ) {
+            // We have an official CSGO Matchmaking demo on our hands
+            if (
+              (
+                await parsedDemosCollection()
+                  .doc(demoInfo.officialMatchId)
+                  .get()
+              ).exists
+            ) {
+              functions.logger.info(
+                `Demo ${fileName} is an official Matchmaking demo and has already been processed`
+              );
+            } else {
+              // TODO: set match metadata here
+              await parsedDemosCollection()
+                .doc(officialMatchId)
+                .set(parsedDemo);
+              await profilesCollection()
+                .doc(uploaderUid)
+                .update({
+                  parsedDemos: FieldValue.arrayUnion(officialMatchId),
+                });
+            }
+          } else {
+            functions.logger.error(".dem and .dem.info file mismatch");
+          }
+        }
+
+        // await parsedDemosCollection().doc(parsedDemo.id).set(parsedDemo);
+        // await profilesCollection()
+        //   .doc(uploaderUid)
+        //   .update({ parsedDemos: FieldValue.arrayUnion(parsedDemo.id) });
       }
     } catch (error) {
       const pubsub = new PubSub();

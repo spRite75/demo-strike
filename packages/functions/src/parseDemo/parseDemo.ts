@@ -75,13 +75,7 @@ function getLocation(entity: BaseEntity | Player): EntityLocation {
   };
 }
 
-export async function parseDemo(opts: {
-  fileName: string;
-  uploaderUid: string;
-  demoBuffer: Buffer;
-}) {
-  const { fileName, uploaderUid, demoBuffer } = opts;
-
+export async function parseDemo(demoBuffer: Buffer) {
   return new Promise<ParsedDemoDocument>(async (resolve, reject) => {
     const demoWriter = new ParsedDemoWriter();
 
@@ -386,8 +380,6 @@ export async function parseDemo(opts: {
         vars.get("steamworks_sessionid_server") ?? "";
 
       demoWriter.finalise({
-        fileName,
-        uploaderUid,
         finalTeamScores,
         mapName,
         serverName,

@@ -1,8 +1,6 @@
 import { IPlayerRoundStats } from "demofile";
 
 export interface ParsedDemoDocument {
-  id: string;
-  uploadersUids: string[];
   playersSteam64Ids: string[];
   rounds: ParsedDemoDocument_round[];
   teams: ParsedDemoDocument_team[];
@@ -10,8 +8,6 @@ export interface ParsedDemoDocument {
   serverName: string;
   playbackTicks: number;
   playbackTime: number;
-  lastModifiedTimestamp: string;
-  matchTimestamp: string;
   steamworksSessionIdServer: string;
 }
 

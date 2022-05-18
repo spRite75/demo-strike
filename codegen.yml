@@ -9,6 +9,9 @@ generates:
       - "typescript-operations"
       - "typescript-react-apollo"
       - "fragment-matcher"
+    config:
+      scalars:
+        DateTime: luxon#DateTime
   packages/client/src/generated/graphql.schema.json:
     plugins:
       - "introspection"
@@ -20,6 +23,8 @@ generates:
       - "typescript-resolvers"
     config:
       contextType: ../#Context
+      scalars:
+        DateTime: luxon#DateTime
   packages/functions/src/graphql/generated/graphql.schema.json:
     plugins:
       - "introspection"
