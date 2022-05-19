@@ -3,7 +3,7 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build:copy-graphql-schema": "mkdir -p lib/graphql && cp src/graphql/schema.graphql lib/graphql/schema.graphql",
-    "prebuild": "npm run build:copy-graphql-schema && npm run build:copy-protobuf-files",
+    "prebuild": "npm run build:copy-graphql-schema",
     "build": "tsc",
     "build:watch": "npm run prebuild && tsc -w",
     "serve": "npm run build && firebase emulators:start --only functions",
