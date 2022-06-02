@@ -1,5 +1,10 @@
 import { IPlayerRoundStats } from "demofile";
 
+export interface ParsedDemoDocumentMeta {
+  id: string;
+  officialMatchTimestamp?: string;
+}
+
 export interface ParsedDemoDocument {
   playersSteam64Ids: string[];
   rounds: ParsedDemoDocument_round[];

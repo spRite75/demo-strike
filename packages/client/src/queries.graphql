@@ -8,3 +8,34 @@ query GetProfile {
     displayName
   }
 }
+
+query GetMyMatches {
+  myMatches {
+    id
+    matchTimeStamp
+    counterTerroristScore {
+      firstHalf
+      secondHalf
+      total
+      playerScores {
+        steam64Id
+        displayName
+        kills
+        assists
+        deaths
+      }
+    }
+    terroristScore {
+      firstHalf
+      secondHalf
+      total
+      playerScores {
+        steam64Id
+        displayName
+        kills
+        assists
+        deaths
+      }
+    }
+  }
+}

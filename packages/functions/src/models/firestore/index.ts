@@ -4,7 +4,7 @@ import {
 } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
 import { ProfileDocument } from "./Profile";
-import { ParsedDemoDocument } from "./ParsedDemo";
+import { ParsedDemoDocument, ParsedDemoDocumentMeta } from "./ParsedDemo";
 
 function getTypedCollection<T>(collectionName: string) {
   const converter: FirestoreDataConverter<T> = {
@@ -25,5 +25,7 @@ export function profilesCollection() {
 }
 
 export function parsedDemosCollection() {
-  return getTypedCollection<ParsedDemoDocument>("parsed-demos");
+  return getTypedCollection<ParsedDemoDocument & ParsedDemoDocumentMeta>(
+    "parsed-demos"
+  );
 }

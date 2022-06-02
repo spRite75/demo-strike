@@ -15,7 +15,7 @@ async function load(filePath: string) {
 export const handler = functions.pubsub
   .topic(demoUploadsPubsub.topicName)
   .onPublish(async (pubsubMessage) => {
-    const { filePath, hasInfoFile, lastModified, uploaderUid } =
+    const { filePath, hasInfoFile, uploaderUid } =
       demoUploadsPubsub.read(pubsubMessage);
     functions.logger.log("received a demo", pubsubMessage.json);
 
@@ -34,7 +34,8 @@ export const handler = functions.pubsub
         ]);
 
         if (demoInfo) {
-          const { officialMatchId, steam64Ids } = demoInfo;
+          const { officialMatchId, officialMatchTimestamp, steam64Ids } =
+            demoInfo;
           const { playersSteam64Ids } = parsedDemo;
           if (
             steam64Ids.sort().join(",") === playersSteam64Ids.sort().join(",")
@@ -51,25 +52,20 @@ export const handler = functions.pubsub
                 `Demo ${fileName} is an official Matchmaking demo and has already been processed`
               );
             } else {
-              // TODO: set match metadata here
+              const id = `mm-${officialMatchId}`;
               await parsedDemosCollection()
-                .doc(officialMatchId)
-                .set(parsedDemo);
+                .doc(id)
+                .set({ id, officialMatchTimestamp, ...parsedDemo });
               await profilesCollection()
                 .doc(uploaderUid)
                 .update({
-                  parsedDemos: FieldValue.arrayUnion(officialMatchId),
+                  parsedDemos: FieldValue.arrayUnion(id),
                 });
             }
           } else {
             functions.logger.error(".dem and .dem.info file mismatch");
           }
         }
-
-        // await parsedDemosCollection().doc(parsedDemo.id).set(parsedDemo);
-        // await profilesCollection()
-        //   .doc(uploaderUid)
-        //   .update({ parsedDemos: FieldValue.arrayUnion(parsedDemo.id) });
       }
     } catch (error) {
       const pubsub = new PubSub();

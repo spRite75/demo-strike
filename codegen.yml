@@ -11,7 +11,7 @@ generates:
       - "fragment-matcher"
     config:
       scalars:
-        DateTime: luxon#DateTime
+        DateTime: string
   packages/client/src/generated/graphql.schema.json:
     plugins:
       - "introspection"

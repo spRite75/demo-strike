@@ -5,6 +5,7 @@ import { PubSub } from "@google-cloud/pubsub";
 import { authUser } from "../authUser";
 import { demoUploadsPubsub } from "../models/pubsub";
 import { dateTimeScalar } from "./scalars";
+import { myMatches } from "./resolvers/myMatches";
 
 export const resolvers: Resolvers = {
   DateTime: dateTimeScalar,
@@ -27,6 +28,7 @@ export const resolvers: Resolvers = {
         .then((doc) => doc.data());
       return profile || null;
     },
+    myMatches,
   },
   Mutation: {
     createProfile: async (_, { input: { displayName } }, { uid, flags }) => {
@@ -73,7 +75,7 @@ export const resolvers: Resolvers = {
           await topic.publishMessage(
             demoUploadsPubsub.create({
               filePath: `demos/u/${uid}/o/${demo.fileName}`,
-              lastModified: demo.lastModified,
+              lastModified: demo.lastModified.toISO(),
               hasInfoFile: infoFiles.some(
                 (infoFile) => infoFile.fileName === `${demo.fileName}.info`
               ),
