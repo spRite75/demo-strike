@@ -45,7 +45,7 @@ export function useDropzoneUpload() {
         input: {
           demos: localCompletedFiles.map((file) => ({
             fileName: file.name,
-            lastModified: DateTime.fromMillis(file.lastModified),
+            lastModified: DateTime.fromMillis(file.lastModified).toISO(),
           })),
         },
       },
