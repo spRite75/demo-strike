@@ -4,9 +4,6 @@
     "indexes": "firestore.indexes.json"
   },
   "functions": {
-    "predeploy": [
-      "npm run build"
-    ],
     "source": "packages/functions"
   },
   "storage": {
@@ -37,11 +34,7 @@
   },
   "hosting": {
     "public": "packages/client/build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "/graphql",
