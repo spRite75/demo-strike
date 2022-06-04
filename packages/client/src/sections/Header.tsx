@@ -5,6 +5,7 @@ import { useIsAuthed } from "../hooks/useIsAuthed";
 import { useProfile } from "../hooks/useProfile";
 import { UploadModal } from "./UploadModal";
 import { CreateProfileModal } from "./CreateProfileModal";
+import { Link } from "wouter";
 
 export function Header() {
   const isAuthed = useIsAuthed();
@@ -31,8 +32,17 @@ export function Header() {
         {profile && (
           <Navbar.Center className="px-2 mx-2">
             <div className="flex items-stretch">
-              <Button color="ghost">Home</Button>
-              <Button color="ghost">Matches</Button>
+              <Link href="/">
+                <a>
+                  <Button color="ghost">Home</Button>
+                </a>
+              </Link>
+
+              <Link href="/matches">
+                <a>
+                  <Button color="ghost">Matches</Button>
+                </a>
+              </Link>
             </div>
           </Navbar.Center>
         )}

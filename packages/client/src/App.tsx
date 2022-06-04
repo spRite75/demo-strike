@@ -1,27 +1,16 @@
-import React, { useEffect } from "react";
-
-import { useIsAuthed } from "./hooks/useIsAuthed";
-import { useProfile } from "./hooks/useProfile";
+import { Switch, Route } from "wouter";
+import { Default } from "./sections/Default";
 import { Header } from "./sections/Header";
+import { MatchesPage } from "./sections/MatchesPage";
 
 function App() {
-  const isAuthed = useIsAuthed();
-  const { loading, data } = useProfile();
-
-  const displayName = data?.displayName;
-
   return (
     <>
       <Header />
-      <div className="hero min-h-screen bg-base-200">
-        <div className="hero-content text-center">
-          <div className="max-w-md">
-            <h1 className="text-5xl font-bold">Welcome to Demo Strike</h1>
-            <p className="py-6">{loading && "Loading data..."}</p>
-            {isAuthed && <span>Welcome {displayName || "<unknown>"}</span>}
-          </div>
-        </div>
-      </div>
+      <Switch>
+        <Route path="/matches" component={MatchesPage} />
+        <Route component={Default} />
+      </Switch>
     </>
   );
 }

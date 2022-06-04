@@ -15,7 +15,7 @@ export const myMatches: QueryResolvers["myMatches"] = async (
   const usersDemos = await profilesCollection()
     .doc(uid)
     .get()
-    .then(({ data }) => data())
+    .then((document) => document.data())
     .then((data) => data && data.parsedDemos);
   if (!usersDemos) return [];
 
