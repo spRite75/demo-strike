@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useGetProfileLazyQuery } from "../generated/graphql";
 import { useIsAuthed } from "./useIsAuthed";
 
-/** 
+/**
  * Fetches the user profile only if the user is authed.
  * `loading` will never change to false if called for an unauthenticated user.
  * */
@@ -15,5 +15,5 @@ export function useProfile() {
     if (isAuthed) doQuery();
   }, [isAuthed]);
 
-  return {loading: called ? loading : true, data: data?.profile };
+  return { loading: called ? loading : true, data: data?.myProfile };
 }

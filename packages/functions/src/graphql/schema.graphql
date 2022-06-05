@@ -3,7 +3,7 @@ scalar DateTime
 # Query types
 type Query {
   hello: String!
-  profile: UserProfile
+  myProfile: UserProfile
   myMatches: [Match!]!
 }
 
@@ -43,6 +43,7 @@ type Mutation {
 
 input CreateProfileInput {
   displayName: String!
+  steam64Id: String!
 }
 
 input UploadDemosInput {

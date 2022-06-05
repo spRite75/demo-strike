@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Navbar } from "react-daisyui";
 import { useFirebase } from "../hooks/useFirebase";
 import { useIsAuthed } from "../hooks/useIsAuthed";
@@ -8,7 +8,7 @@ import { CreateProfileModal } from "./CreateProfileModal";
 import { Link } from "wouter";
 
 export function Header() {
-  const isAuthed = useIsAuthed();
+  const { isAuthed, needsProfile } = useIsAuthed();
   const { loading: profileLoading, data: profile } = useProfile();
   const firebase = useFirebase();
 
@@ -18,9 +18,9 @@ export function Header() {
   useEffect(() => {
     if (!isAuthed) return;
     if (profileLoading) return;
-    if (profile) return; // TODO clientside limit who can set their profile
-    setShowCreateProfileModal(true);
-  }, [isAuthed, profileLoading, profile]);
+    if (profile) return;
+    if (needsProfile) setShowCreateProfileModal(true);
+  }, [isAuthed, profileLoading, profile, needsProfile]);
 
   return (
     <>

@@ -1,61 +1,65 @@
 import { DateTime } from "luxon";
 import { useGetMyMatchesQuery, GetMyMatchesQuery } from "../generated/graphql";
+import { useProfile } from "../hooks/useProfile";
 
-// TODO: remove after adding steamid setting to profile
-const spRiteSteam64Id = "76561197993154537";
-
-const myTeam = (match: GetMyMatchesQuery["myMatches"][0]) => {
+const myTeam = (
+  match: GetMyMatchesQuery["myMatches"][0],
+  steam64Id: string
+) => {
   if (
     match.counterTerroristScore.playerScores.some(
-      (p) => p.steam64Id === spRiteSteam64Id
+      (p) => p.steam64Id === steam64Id
     )
   ) {
     return "counterTerroristScore" as const;
   }
   if (
-    match.terroristScore.playerScores.some(
-      (p) => p.steam64Id === spRiteSteam64Id
-    )
+    match.terroristScore.playerScores.some((p) => p.steam64Id === steam64Id)
   ) {
     return "terroristScore" as const;
   }
 };
 
-const enemyTeam = (match: GetMyMatchesQuery["myMatches"][0]) => {
+const enemyTeam = (
+  match: GetMyMatchesQuery["myMatches"][0],
+  steam64Id: string
+) => {
   if (
     match.counterTerroristScore.playerScores.some(
-      (p) => p.steam64Id === spRiteSteam64Id
+      (p) => p.steam64Id === steam64Id
     )
   ) {
     return "terroristScore" as const;
   }
   if (
-    match.terroristScore.playerScores.some(
-      (p) => p.steam64Id === spRiteSteam64Id
-    )
+    match.terroristScore.playerScores.some((p) => p.steam64Id === steam64Id)
   ) {
     return "counterTerroristScore" as const;
   }
 };
 
-const myStats = (match: GetMyMatchesQuery["myMatches"][0]) => {
+const myStats = (
+  match: GetMyMatchesQuery["myMatches"][0],
+  steam64Id: string
+) => {
   return [
     ...match.counterTerroristScore.playerScores,
     ...match.terroristScore.playerScores,
-  ].find((p) => p.steam64Id === spRiteSteam64Id);
+  ].find((p) => p.steam64Id === steam64Id);
 };
 
 export function MatchesPage() {
-  const { data, loading, error } = useGetMyMatchesQuery();
+  const { data: profileData } = useProfile();
+  const { data: matchesData, loading, error } = useGetMyMatchesQuery();
   if (loading) return <span>Loading...</span>;
-  if (error || !data)
+  if (error || !matchesData)
     return (
       <span>
         Error occurred loading matches: {JSON.stringify(error, undefined, 2)}
       </span>
     );
 
-  const sortedMatches = [...data.myMatches].sort(
+  const sortedMatches = [...matchesData.myMatches].sort(
     (a, b) =>
       new Date(b.matchTimeStamp).getTime() -
       new Date(a.matchTimeStamp).getTime()
@@ -83,12 +87,31 @@ export function MatchesPage() {
                       .toFormat("dd LLL yyyy '@' HH:mm")}
                   </td>
                   <td>
-                    {match[myTeam(match) ?? "counterTerroristScore"].total}:
-                    {match[enemyTeam(match) ?? "terroristScore"].total}
+                    {
+                      match[
+                        myTeam(match, `${profileData?.steam64Id}`) ??
+                          "counterTerroristScore"
+                      ].total
+                    }
+                    :
+                    {
+                      match[
+                        enemyTeam(match, `${profileData?.steam64Id}`) ??
+                          "terroristScore"
+                      ].total
+                    }
                   </td>
-                  <td>{myStats(match)?.kills ?? "--"}</td>
-                  <td>{myStats(match)?.assists ?? "--"}</td>
-                  <td>{myStats(match)?.deaths ?? "--"}</td>
+                  <td>
+                    {myStats(match, `${profileData?.steam64Id}`)?.kills ?? "--"}
+                  </td>
+                  <td>
+                    {myStats(match, `${profileData?.steam64Id}`)?.assists ??
+                      "--"}
+                  </td>
+                  <td>
+                    {myStats(match, `${profileData?.steam64Id}`)?.deaths ??
+                      "--"}
+                  </td>
                 </tr>
               ))}
             </tbody>
