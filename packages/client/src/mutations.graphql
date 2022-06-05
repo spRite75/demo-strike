@@ -1,9 +1,0 @@
-mutation CreateProfile($input: CreateProfileInput!) {
-  createProfile(input: $input) {
-    displayName
-  }
-}
-
-mutation UploadDemos($input: UploadDemosInput!) {
-  uploadDemos(input: $input)
-}

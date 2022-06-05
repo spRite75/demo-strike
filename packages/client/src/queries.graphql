@@ -3,9 +3,10 @@ query GetHello {
 }
 
 query GetProfile {
-  profile {
+  myProfile {
     id
     displayName
+    steam64Id
   }
 }
 
@@ -38,4 +39,15 @@ query GetMyMatches {
       }
     }
   }
+}
+
+mutation CreateProfile($input: CreateProfileInput!) {
+  createProfile(input: $input) {
+    displayName
+    steam64Id
+  }
+}
+
+mutation UploadDemos($input: UploadDemosInput!) {
+  uploadDemos(input: $input)
 }

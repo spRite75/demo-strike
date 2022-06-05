@@ -1,9 +1,9 @@
 import { ForbiddenError } from "apollo-server-cloud-functions";
-import { QueryResolvers, Match } from "../generated/graphql";
+import { QueryResolvers, Match } from "../../generated/graphql";
 import {
   profilesCollection,
   parsedDemosCollection,
-} from "../../models/firestore";
+} from "../../../models/firestore";
 import { DateTime } from "luxon";
 
 export const myMatches: QueryResolvers["myMatches"] = async (
@@ -15,7 +15,7 @@ export const myMatches: QueryResolvers["myMatches"] = async (
   const usersDemos = await profilesCollection()
     .doc(uid)
     .get()
-    .then(({ data }) => data())
+    .then((document) => document.data())
     .then((data) => data && data.parsedDemos);
   if (!usersDemos) return [];
 

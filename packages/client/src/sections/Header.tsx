@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Navbar } from "react-daisyui";
 import { useFirebase } from "../hooks/useFirebase";
 import { useIsAuthed } from "../hooks/useIsAuthed";
 import { useProfile } from "../hooks/useProfile";
 import { UploadModal } from "./UploadModal";
 import { CreateProfileModal } from "./CreateProfileModal";
+import { Link } from "wouter";
 
 export function Header() {
-  const isAuthed = useIsAuthed();
+  const { isAuthed, needsProfile } = useIsAuthed();
   const { loading: profileLoading, data: profile } = useProfile();
   const firebase = useFirebase();
 
@@ -17,9 +18,9 @@ export function Header() {
   useEffect(() => {
     if (!isAuthed) return;
     if (profileLoading) return;
-    if (profile) return; // TODO clientside limit who can set their profile
-    setShowCreateProfileModal(true);
-  }, [isAuthed, profileLoading, profile]);
+    if (profile) return;
+    if (needsProfile) setShowCreateProfileModal(true);
+  }, [isAuthed, profileLoading, profile, needsProfile]);
 
   return (
     <>
@@ -31,8 +32,17 @@ export function Header() {
         {profile && (
           <Navbar.Center className="px-2 mx-2">
             <div className="flex items-stretch">
-              <Button color="ghost">Home</Button>
-              <Button color="ghost">Matches</Button>
+              <Link href="/">
+                <a>
+                  <Button color="ghost">Home</Button>
+                </a>
+              </Link>
+
+              <Link href="/matches">
+                <a>
+                  <Button color="ghost">Matches</Button>
+                </a>
+              </Link>
             </div>
           </Navbar.Center>
         )}
