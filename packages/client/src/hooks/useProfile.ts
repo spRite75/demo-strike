@@ -7,7 +7,7 @@ import { useIsAuthed } from "./useIsAuthed";
  * `loading` will never change to false if called for an unauthenticated user.
  * */
 export function useProfile() {
-  const isAuthed = useIsAuthed();
+  const { isAuthed } = useIsAuthed();
   const [doQuery, { loading, data, error, called }] = useGetProfileLazyQuery();
   if (error) console.error(error);
 
