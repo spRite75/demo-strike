@@ -1,14 +1,25 @@
 scalar DateTime
 
-# Query types
-type Query {
-  hello: String!
-  players: [Player!]!
-  myProfile: UserProfile
-  myMatches: [Match!]!
+enum CacheControlScope {
+  PUBLIC
+  PRIVATE
 }
 
-type Player {
+directive @cacheControl(
+  maxAge: Int
+  scope: CacheControlScope
+  inheritMaxAge: Boolean
+) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
+
+# Query types
+type Query {
+  hello: String! @cacheControl(maxAge: 600)
+  players: [Player!]! @cacheControl(maxAge: 30)
+  myProfile: UserProfile @cacheControl(maxAge: 30, scope: PRIVATE)
+  myMatches: [Match!]! @cacheControl(maxAge: 30, scope: PRIVATE)
+}
+
+type Player @cacheControl(inheritMaxAge: true) {
   id: ID!
   steam64Id: String!
   displayName: String!
@@ -18,19 +29,19 @@ type Player {
   avatarUrl: PlayerAvatarUrl
 }
 
-type PlayerAvatarUrl {
+type PlayerAvatarUrl @cacheControl(inheritMaxAge: true) {
   default: String!
   medium: String!
   full: String!
 }
 
-type UserProfile {
+type UserProfile @cacheControl(inheritMaxAge: true) {
   id: ID!
   displayName: String!
   steam64Id: String!
 }
 
-type Match {
+type Match @cacheControl(inheritMaxAge: true) {
   id: ID!
   matchTimeStamp: DateTime!
   mapName: String!
@@ -38,14 +49,14 @@ type Match {
   counterTerroristScore: MatchScore!
 }
 
-type MatchScore {
+type MatchScore @cacheControl(inheritMaxAge: true) {
   firstHalf: Int!
   secondHalf: Int!
   total: Int!
   playerScores: [PlayerScore!]!
 }
 
-type PlayerScore {
+type PlayerScore @cacheControl(inheritMaxAge: true) {
   steam64Id: String!
   displayName: String!
   kills: Int!

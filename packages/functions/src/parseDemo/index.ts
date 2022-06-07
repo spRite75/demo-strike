@@ -38,6 +38,8 @@ export const handler = functions.pubsub
           parsedDemoPromise,
         ]);
 
+        functions.logger.info("finished parsing");
+
         if (demoInfo) {
           const { officialMatchId, officialMatchTimestamp, steam64Ids } =
             demoInfo;
@@ -47,11 +49,13 @@ export const handler = functions.pubsub
           ) {
             // We have an official CSGO Matchmaking demo on our hands
             const id = `mm-${officialMatchId}`;
+            functions.logger.info(`demo id: ${id}`);
 
             // Save demo data
             await parsedDemosCollection()
               .doc(id)
               .set({ id, officialMatchTimestamp, ...parsedDemo });
+            functions.logger.info(`demo data saved`);
 
             // Save uploaded demo to user's profile (in case they do not appear in the demo)
             await profilesCollection()
@@ -59,12 +63,15 @@ export const handler = functions.pubsub
               .update({
                 parsedDemos: FieldValue.arrayUnion(id),
               });
+            functions.logger.info(`uploader profile updated`);
 
             // Contribute to player list
             const allPlayers = parsedDemo.teams.flatMap((team) => team.players);
             const playerSummaries = await getPlayerSummaries(
               allPlayers.map((player) => player.steam64Id)
             );
+            functions.logger.info(`got player summaries from steam`);
+
             Promise.all(
               allPlayers.map(async (player) => {
                 const ref = playerListCollection().doc(player.steam64Id);
@@ -92,6 +99,7 @@ export const handler = functions.pubsub
                 }
               })
             );
+            functions.logger.info(`saved players to player list`);
           } else {
             functions.logger.error(".dem and .dem.info file mismatch");
           }
