@@ -2,6 +2,20 @@ query GetHello {
   hello
 }
 
+query GetPlayers {
+  players {
+    id
+    steam64Id
+    displayName
+    demoCount
+    lastPlayedTimestamp
+    avatarUrl {
+      medium
+    }
+    profileUrl
+  }
+}
+
 query GetProfile {
   myProfile {
     id
@@ -43,6 +57,7 @@ query GetMyMatches {
 
 mutation CreateProfile($input: CreateProfileInput!) {
   createProfile(input: $input) {
+    id
     displayName
     steam64Id
   }

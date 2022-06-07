@@ -3,19 +3,37 @@ scalar DateTime
 # Query types
 type Query {
   hello: String!
+  players: [Player!]!
   myProfile: UserProfile
   myMatches: [Match!]!
+}
+
+type Player {
+  id: ID!
+  steam64Id: String!
+  displayName: String!
+  demoCount: Int!
+  lastPlayedTimestamp: DateTime!
+  profileUrl: String
+  avatarUrl: PlayerAvatarUrl
+}
+
+type PlayerAvatarUrl {
+  default: String!
+  medium: String!
+  full: String!
 }
 
 type UserProfile {
   id: ID!
   displayName: String!
-  steam64Id: String
+  steam64Id: String!
 }
 
 type Match {
   id: ID!
   matchTimeStamp: DateTime!
+  mapName: String!
   terroristScore: MatchScore!
   counterTerroristScore: MatchScore!
 }

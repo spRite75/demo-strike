@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { useGetMyMatchesQuery, GetMyMatchesQuery } from "../generated/graphql";
 import { useProfile } from "../hooks/useProfile";
+import { renderTimestamp } from "../utils";
 
 const myTeam = (
   match: GetMyMatchesQuery["myMatches"][0],
@@ -81,11 +82,7 @@ export function MatchesPage() {
             <tbody>
               {sortedMatches.map((match) => (
                 <tr key={match.id}>
-                  <td>
-                    {DateTime.fromISO(match.matchTimeStamp)
-                      .setZone("local")
-                      .toFormat("dd LLL yyyy '@' HH:mm")}
-                  </td>
+                  <td>{renderTimestamp(match.matchTimeStamp, "full")}</td>
                   <td>
                     {
                       match[

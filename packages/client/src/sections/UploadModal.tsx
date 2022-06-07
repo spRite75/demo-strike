@@ -1,9 +1,13 @@
 import { Button, Divider, Modal } from "react-daisyui";
 import filesize from "filesize";
 import { useDropzoneUpload } from "../hooks/useDropzoneUpload";
+import { useState } from "react";
 
 export function UploadModal(props: { show: boolean; close: () => void }) {
   const { show, close } = props;
+
+  const [uploadClicked, setUploadClicked] = useState(false);
+
   const {
     selectedFiles,
     inProgressFile,
@@ -25,7 +29,8 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
     close();
   };
 
-  const accept = async () => {
+  const handleUpload = async () => {
+    setUploadClicked(true);
     await upload();
     close();
   };
@@ -60,19 +65,21 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
         )}
         <div {...getRootProps()}>
           <input {...getInputProps()} />
-          <div className="mt-5 p-10 rounded-2xl border-dashed border-2 border-sky-500">
-            {isDragActive ? (
-              <p>Drop the files here ...</p>
-            ) : (
-              <p>Drag 'n' drop some files here, or click to select files</p>
-            )}
-          </div>
+          {!uploadClicked && (
+            <div className="mt-5 p-10 rounded-2xl border-dashed border-2 border-sky-500">
+              {isDragActive ? (
+                <p>Drop the files here ...</p>
+              ) : (
+                <p>Drag 'n' drop some files here, or click to select files</p>
+              )}
+            </div>
+          )}
         </div>
       </Modal.Body>
 
       <Modal.Actions>
-        <Button onClick={accept} color="primary">
-          Accept
+        <Button onClick={handleUpload} color="primary" disabled={uploadClicked}>
+          Upload
         </Button>
         <Button onClick={cancel}>Cancel</Button>
       </Modal.Actions>

@@ -38,6 +38,7 @@ export const myMatches: QueryResolvers["myMatches"] = async (
     matches.push({
       id: demo.id,
       matchTimeStamp: DateTime.fromISO(demo.officialMatchTimestamp ?? ""),
+      mapName: demo.mapName,
       counterTerroristScore: {
         firstHalf: ctTeam.score.firstHalf,
         secondHalf: ctTeam.score.secondHalf,

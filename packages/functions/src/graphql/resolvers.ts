@@ -5,6 +5,7 @@ import { myMatches } from "./resolvers/query/myMatches";
 import { createProfile } from "./resolvers/mutation/createProfile";
 import { uploadDemos } from "./resolvers/mutation/uploadDemos";
 import { myProfile } from "./resolvers/query/myProfile";
+import { players } from "./resolvers/query/players";
 
 export const resolvers: Resolvers = {
   DateTime: dateTimeScalar,
@@ -19,6 +20,7 @@ export const resolvers: Resolvers = {
       const person = profile ? profile.displayName : "stranger";
       return `Hello ${person}!`;
     },
+    players,
     myProfile,
     myMatches,
   },

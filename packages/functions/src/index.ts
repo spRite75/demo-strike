@@ -1,10 +1,8 @@
-import { handler as graphql } from "./graphql";
-import { handler as parseDemo } from "./parseDemo";
 import * as functions from "firebase-functions";
 import { authUser } from "./authUser";
 
 /** Enable users by changing a document in firestore */
-const activateUser = functions.firestore
+export const activateUser = functions.firestore
   .document("configs/allowedUsers")
   .onUpdate(async (allowedUsers) => {
     const { uids } = allowedUsers.after.data();
@@ -22,8 +20,5 @@ const activateUser = functions.firestore
     );
   });
 
-module.exports = {
-  activateUser,
-  graphql,
-  parseDemo,
-};
+export { handler as graphql } from "./graphql";
+export { handler as parseDemo } from "./parseDemo";
