@@ -25,9 +25,7 @@ const context: ContextFunction<any, Context> = async ({ req }) => {
       .auth()
       .verifyIdToken(req.headers.authorization);
     userTokenData = extractUserTokenData(decodedJwt);
-  } catch (e) {
-    functions.logger.warn("idToken not decoded", e);
-  }
+  } catch {}
 
   return { ...userTokenData };
 };

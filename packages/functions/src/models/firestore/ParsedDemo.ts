@@ -1,14 +1,16 @@
 import { IPlayerRoundStats } from "demofile";
 
-export interface ParsedDemoDocumentMeta {
+export type ParsedDemoDocument = ParsedDemoMeta & ParsedDemoData;
+
+export interface ParsedDemoMeta {
   id: string;
   officialMatchTimestamp?: string;
 }
 
-export interface ParsedDemoDocument {
+export interface ParsedDemoData {
   playersSteam64Ids: string[];
-  rounds: ParsedDemoDocument_round[];
-  teams: ParsedDemoDocument_team[];
+  rounds: ParsedDemoData_round[];
+  teams: ParsedDemoData_team[];
   mapName: string;
   serverName: string;
   playbackTicks: number;
@@ -16,9 +18,9 @@ export interface ParsedDemoDocument {
   steamworksSessionIdServer: string;
 }
 
-export interface ParsedDemoDocument_round {
+export interface ParsedDemoData_round {
   roundNumber: number;
-  events: ParsedDemoDocument_round_event[];
+  events: ParsedDemoData_round_event[];
 }
 
 export type TeamLetter = "T" | "CT" | "???";
@@ -43,7 +45,7 @@ export interface EntityLocation {
   name: string;
 }
 
-export type ParsedDemoDocument_round_event = {
+export type ParsedDemoData_round_event = {
   /** Time from the start of the demo */
   eventTime: number;
 } & (
@@ -118,21 +120,21 @@ export type ParsedDemoDocument_round_event = {
     }
 );
 
-export interface ParsedDemoDocument_team {
+export interface ParsedDemoData_team {
   /** Letter for the side on which this team ended the match */
   finalTeamLetter: TeamLetter;
-  players: ParsedDemoDocument_team_player[];
-  score: ParsedDemoDocument_team_score;
+  players: ParsedDemoData_team_player[];
+  score: ParsedDemoData_team_score;
 }
 
-export interface ParsedDemoDocument_team_player {
+export interface ParsedDemoData_team_player {
   steam64Id: string;
   displayName: string;
-  playerScore: ParsedDemoDocument_team_player_score;
+  playerScore: ParsedDemoData_team_player_score;
   playerRoundStats: ({ roundNumber: number } & IPlayerRoundStats)[];
 }
 
-export interface ParsedDemoDocument_team_player_score {
+export interface ParsedDemoData_team_player_score {
   kills: number;
   deaths: number;
   assists: number;
@@ -140,7 +142,7 @@ export interface ParsedDemoDocument_team_player_score {
   mvps: number;
 }
 
-export interface ParsedDemoDocument_team_score {
+export interface ParsedDemoData_team_score {
   firstHalf: number;
   secondHalf: number;
   total: number;

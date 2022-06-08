@@ -1,10 +1,11 @@
 import { ForbiddenError } from "apollo-server-cloud-functions";
-import { QueryResolvers, Match } from "../../generated/graphql";
+import { QueryResolvers } from "../../generated/graphql";
 import {
   profilesCollection,
   parsedDemosCollection,
 } from "../../../models/firestore";
-import { DateTime } from "luxon";
+import { convertParsedDemoToMatch } from "./shared/convertParsedDemoToMatch";
+import { notNullish } from "../../../utils";
 
 export const myMatches: QueryResolvers["myMatches"] = async (
   _,
@@ -28,43 +29,5 @@ export const myMatches: QueryResolvers["myMatches"] = async (
     )
   );
 
-  const matches: Match[] = [];
-
-  demos.forEach((demo) => {
-    if (!demo) return;
-    const ctTeam = demo.teams.find((t) => t.finalTeamLetter === "CT");
-    const tTeam = demo.teams.find((t) => t.finalTeamLetter === "T");
-    if (!ctTeam || !tTeam) return;
-    matches.push({
-      id: demo.id,
-      matchTimeStamp: DateTime.fromISO(demo.officialMatchTimestamp ?? ""),
-      mapName: demo.mapName,
-      counterTerroristScore: {
-        firstHalf: ctTeam.score.firstHalf,
-        secondHalf: ctTeam.score.secondHalf,
-        total: ctTeam.score.total,
-        playerScores: ctTeam.players.map(
-          ({
-            steam64Id,
-            displayName,
-            playerScore: { kills, assists, deaths },
-          }) => ({ steam64Id, displayName, kills, assists, deaths })
-        ),
-      },
-      terroristScore: {
-        firstHalf: tTeam.score.firstHalf,
-        secondHalf: tTeam.score.secondHalf,
-        total: tTeam.score.total,
-        playerScores: tTeam.players.map(
-          ({
-            steam64Id,
-            displayName,
-            playerScore: { kills, assists, deaths },
-          }) => ({ steam64Id, displayName, kills, assists, deaths })
-        ),
-      },
-    });
-  });
-
-  return matches;
+  return demos.map(convertParsedDemoToMatch).filter(notNullish);
 };

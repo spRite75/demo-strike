@@ -12,3 +12,7 @@ export function chunk<T>(input: T[], size: number) {
       : [...arr.slice(0, -1), [...arr.slice(-1)[0], item]];
   }, [] as T[][]);
 }
+
+export function notNullish<T>(value: T | null | undefined): value is T {
+  return !!value;
+}

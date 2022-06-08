@@ -1,10 +1,10 @@
 import { BaseEntity, DemoFile, Player } from "demofile";
 import * as functions from "firebase-functions";
 import {
-  ParsedDemoDocument,
-  ParsedDemoDocument_team_score,
+  ParsedDemoData_team_score,
   TeamLetter,
   EntityLocation,
+  ParsedDemoData,
 } from "../models/firestore/ParsedDemo";
 import { ParsedDemoWriter } from "./ParsedDemoWriter";
 
@@ -76,7 +76,7 @@ function getLocation(entity: BaseEntity | Player): EntityLocation {
 }
 
 export async function parseDemo(demoBuffer: Buffer) {
-  return new Promise<ParsedDemoDocument>(async (resolve, reject) => {
+  return new Promise<ParsedDemoData>(async (resolve, reject) => {
     const demoWriter = new ParsedDemoWriter();
 
     const demoFile = new DemoFile();
@@ -354,8 +354,8 @@ export async function parseDemo(demoBuffer: Buffer) {
       }
 
       const finalTeamScores: {
-        CT: ParsedDemoDocument_team_score;
-        T: ParsedDemoDocument_team_score;
+        CT: ParsedDemoData_team_score;
+        T: ParsedDemoData_team_score;
       } = {
         CT: { firstHalf: 0, secondHalf: 0, total: 0 },
         T: { firstHalf: 0, secondHalf: 0, total: 0 },

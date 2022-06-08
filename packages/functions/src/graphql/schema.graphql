@@ -15,8 +15,18 @@ directive @cacheControl(
 type Query {
   hello: String! @cacheControl(maxAge: 600)
   players: [Player!]! @cacheControl(maxAge: 30)
+  player(params: GetPlayerInput!): Player @cacheControl(maxAge: 60)
+  matches(params: GetMatchesInput!): [Match!]! @cacheControl(maxAge: 60)
   myProfile: UserProfile @cacheControl(maxAge: 30, scope: PRIVATE)
   myMatches: [Match!]! @cacheControl(maxAge: 30, scope: PRIVATE)
+}
+
+input GetPlayerInput {
+  steam64Id: ID!
+}
+
+input GetMatchesInput {
+  playerSteam64Id: ID!
 }
 
 type Player @cacheControl(inheritMaxAge: true) {

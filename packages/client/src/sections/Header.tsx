@@ -5,22 +5,15 @@ import { useIsAuthed } from "../hooks/useIsAuthed";
 import { useProfile } from "../hooks/useProfile";
 import { UploadModal } from "./UploadModal";
 import { CreateProfileModal } from "./CreateProfileModal";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 export function Header() {
   const { isAuthed, needsProfile } = useIsAuthed();
-  const { loading: profileLoading, data: profile } = useProfile();
+  const { data: profile } = useProfile();
   const firebase = useFirebase();
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateProfileModal, setShowCreateProfileModal] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthed) return;
-    if (profileLoading) return;
-    if (profile) return;
-    if (needsProfile) setShowCreateProfileModal(true);
-  }, [isAuthed, profileLoading, profile, needsProfile]);
 
   return (
     <>
@@ -29,27 +22,28 @@ export function Header() {
           <span className="text-lg font-bold">Demo-Strike</span>
         </Navbar.Start>
 
-        {profile && (
-          <Navbar.Center className="px-2 mx-2">
-            <div className="flex items-stretch">
-              <Link href="/">
-                <a>
-                  <Button color="ghost">Home</Button>
-                </a>
+        <Navbar.Center className="px-2 mx-2">
+          <div className="flex items-stretch">
+            <Link to="/">
+              <Button color="ghost">Home</Button>
+            </Link>
+            {profile && (
+              <Link to="/matches">
+                <Button color="ghost">Matches</Button>
               </Link>
+            )}
+          </div>
+        </Navbar.Center>
 
-              <Link href="/matches">
-                <a>
-                  <Button color="ghost">Matches</Button>
-                </a>
-              </Link>
-            </div>
-          </Navbar.Center>
-        )}
         <Navbar.End className="px-2 mx-2">
           {profile && (
             <Button color="ghost" onClick={() => setShowUploadModal(true)}>
               Upload
+            </Button>
+          )}
+          {needsProfile && (
+            <Button color="accent" onClick={() => setShowUploadModal(true)}>
+              Create profile to upload demos
             </Button>
           )}
           {!isAuthed && (

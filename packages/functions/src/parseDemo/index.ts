@@ -11,6 +11,7 @@ import { PubSub } from "@google-cloud/pubsub";
 import { FieldValue } from "firebase-admin/firestore";
 import { parseInfo } from "./parseInfo";
 import { getPlayerSummaries } from "../steamWebApi";
+import { DateTime } from "luxon";
 
 async function load(filePath: string) {
   const [file] = await admin.storage().bucket().file(filePath).download();
@@ -52,9 +53,13 @@ export const handler = functions.pubsub
             functions.logger.info(`demo id: ${id}`);
 
             // Save demo data
-            await parsedDemosCollection()
-              .doc(id)
-              .set({ id, officialMatchTimestamp, ...parsedDemo });
+            const parsedDemoRef = parsedDemosCollection().doc(id);
+            const hasDemoBeenParsedBefore = (await parsedDemoRef.get()).exists;
+            await parsedDemoRef.set({
+              id,
+              officialMatchTimestamp,
+              ...parsedDemo,
+            });
             functions.logger.info(`demo data saved`);
 
             // Save uploaded demo to user's profile (in case they do not appear in the demo)
@@ -79,16 +84,31 @@ export const handler = functions.pubsub
                 if (snap.exists) {
                   await ref.update({
                     displayName: player.displayName,
-                    demoCount: FieldValue.increment(1),
+                    demoCount: FieldValue.increment(
+                      hasDemoBeenParsedBefore ? 0 : 1
+                    ),
                     lastPlayedTimestamp: demoInfo.officialMatchTimestamp,
                   });
                 } else {
                   const playerSummary = playerSummaries.get(player.steam64Id);
+
+                  const currentLastPlayedDateTime = DateTime.fromISO(
+                    snap.data()?.lastPlayedTimestamp ??
+                      "1970-01-01T00:00:00.000Z"
+                  );
+                  const officialMatchDateTime = DateTime.fromISO(
+                    demoInfo.officialMatchTimestamp
+                  );
+
                   await ref.set({
                     steam64Id: player.steam64Id,
                     displayName: player.displayName,
                     demoCount: 1,
-                    lastPlayedTimestamp: demoInfo.officialMatchTimestamp,
+                    lastPlayedTimestamp: (currentLastPlayedDateTime <
+                    officialMatchDateTime
+                      ? officialMatchDateTime
+                      : currentLastPlayedDateTime
+                    ).toISO(),
                     profileUrl: playerSummary && playerSummary.profileUrl,
                     avatarUrl: playerSummary && {
                       default: playerSummary.avatar,
@@ -103,6 +123,10 @@ export const handler = functions.pubsub
           } else {
             functions.logger.error(".dem and .dem.info file mismatch");
           }
+        } else {
+          functions.logger.error(
+            "missing demoInfo - currently only able to parse official Matchmaking demos with .dem.info files included"
+          );
         }
       }
     } catch (error) {

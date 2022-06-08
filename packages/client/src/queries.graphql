@@ -16,6 +16,50 @@ query GetPlayers {
   }
 }
 
+query GetPlayer($steam64Id: ID!) {
+  player(params: { steam64Id: $steam64Id }) {
+    id
+    displayName
+    demoCount
+    profileUrl
+    avatarUrl {
+      full
+    }
+  }
+}
+
+query GetPlayerMatches($steam64Id: ID!) {
+  matches(params: { playerSteam64Id: $steam64Id }) {
+    id
+    matchTimeStamp
+    mapName
+    counterTerroristScore {
+      firstHalf
+      secondHalf
+      total
+      playerScores {
+        steam64Id
+        displayName
+        kills
+        assists
+        deaths
+      }
+    }
+    terroristScore {
+      firstHalf
+      secondHalf
+      total
+      playerScores {
+        steam64Id
+        displayName
+        kills
+        assists
+        deaths
+      }
+    }
+  }
+}
+
 query GetProfile {
   myProfile {
     id

@@ -32,6 +32,7 @@ export function UploadModal(props: { show: boolean; close: () => void }) {
   const handleUpload = async () => {
     setUploadClicked(true);
     await upload();
+    reset();
     close();
   };
 

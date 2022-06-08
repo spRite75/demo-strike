@@ -4,7 +4,7 @@ import {
 } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
 import { ProfileDocument } from "./Profile";
-import { ParsedDemoDocument, ParsedDemoDocumentMeta } from "./ParsedDemo";
+import { ParsedDemoDocument } from "./ParsedDemo";
 import { PlayerListDocument } from "./PlayerList";
 
 function getTypedCollection<T>(collectionName: string) {
@@ -26,9 +26,7 @@ export function profilesCollection() {
 }
 
 export function parsedDemosCollection() {
-  return getTypedCollection<ParsedDemoDocument & ParsedDemoDocumentMeta>(
-    "parsed-demos"
-  );
+  return getTypedCollection<ParsedDemoDocument>("parsed-demos");
 }
 
 export function playerListCollection() {

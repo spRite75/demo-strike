@@ -6,6 +6,8 @@ import { createProfile } from "./resolvers/mutation/createProfile";
 import { uploadDemos } from "./resolvers/mutation/uploadDemos";
 import { myProfile } from "./resolvers/query/myProfile";
 import { players } from "./resolvers/query/players";
+import { player } from "./resolvers/query/player";
+import { matches } from "./resolvers/query/matches";
 
 export const resolvers: Resolvers = {
   DateTime: dateTimeScalar,
@@ -23,6 +25,8 @@ export const resolvers: Resolvers = {
     players,
     myProfile,
     myMatches,
+    player,
+    matches,
   },
   Mutation: {
     createProfile,

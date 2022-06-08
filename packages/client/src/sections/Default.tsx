@@ -1,11 +1,12 @@
+import { Link } from "react-router-dom";
 import { useGetPlayersQuery } from "../generated/graphql";
 import { renderTimestamp } from "../utils";
 
 export function Default() {
   const { data, loading } = useGetPlayersQuery();
   return (
-    <div className="container mx-auto mt-5">
-      <h1 className="text-2xl text-center">Player List</h1>
+    <div className="container mx-auto pt-5">
+      <h1 className="text-2xl text-center my-1">Player List</h1>
       <table className="table mx-auto">
         <thead>
           <tr>
@@ -30,7 +31,9 @@ export function Default() {
                         alt="Player avatar"
                       />
                     </a>
-                    {player.displayName}
+                    <Link to={`/players/${player.steam64Id}/`}>
+                      {player.displayName}
+                    </Link>
                   </span>
                 </td>
                 <td>{player.demoCount}</td>

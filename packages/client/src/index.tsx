@@ -7,6 +7,7 @@ import reportWebVitals from "./reportWebVitals";
 
 import { getApolloClient } from "./apollo";
 import { firebase, FirebaseContext } from "./firebase";
+import { BrowserRouter } from "react-router-dom";
 
 (async () => {
   const apolloClient = getApolloClient(firebase);
@@ -18,14 +19,16 @@ import { firebase, FirebaseContext } from "./firebase";
     <React.StrictMode>
       <FirebaseContext.Provider value={firebase}>
         <ApolloProvider client={apolloClient}>
-          <App />
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
         </ApolloProvider>
       </FirebaseContext.Provider>
     </React.StrictMode>
   );
-  
+
   // If you want to start measuring performance in your app, pass a function
   // to log results (for example: reportWebVitals(console.log))
   // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
   reportWebVitals();
-})()
+})();

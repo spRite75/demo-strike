@@ -7,7 +7,7 @@ import { useFirebase } from "./useFirebase";
 
 export function useDropzoneUpload() {
   const firebase = useFirebase();
-  const [uploadFile, _, status, error] = useUploadFile();
+  const [uploadFile, _, status] = useUploadFile();
   const [uploadInfo] = useUploadDemosMutation();
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);

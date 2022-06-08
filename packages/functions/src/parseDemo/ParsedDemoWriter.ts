@@ -1,16 +1,16 @@
 import { IPlayerRoundStats } from "demofile";
 import {
-  ParsedDemoDocument,
-  ParsedDemoDocument_round,
-  ParsedDemoDocument_round_event,
-  ParsedDemoDocument_team_player,
-  ParsedDemoDocument_team_player_score,
-  ParsedDemoDocument_team_score,
+  ParsedDemoData,
+  ParsedDemoData_round,
+  ParsedDemoData_round_event,
+  ParsedDemoData_team_player,
+  ParsedDemoData_team_player_score,
+  ParsedDemoData_team_score,
   TeamLetter,
 } from "../models/firestore/ParsedDemo";
 
 export class ParsedDemoWriter {
-  private demo: ParsedDemoDocument = {
+  private demo: ParsedDemoData = {
     playersSteam64Ids: [],
     teams: [],
     rounds: [],
@@ -21,11 +21,11 @@ export class ParsedDemoWriter {
     steamworksSessionIdServer: "",
   };
 
-  private players: (ParsedDemoDocument_team_player & {
+  private players: (ParsedDemoData_team_player & {
     finalTeamLetter?: TeamLetter;
   })[] = [];
 
-  private getRound(roundNumber: number): ParsedDemoDocument_round {
+  private getRound(roundNumber: number): ParsedDemoData_round {
     const round = this.demo.rounds.find(
       (round) => round.roundNumber === roundNumber
     );
@@ -54,8 +54,8 @@ export class ParsedDemoWriter {
   updatePlayerScore(
     steam64Id: string,
     updater: (
-      currentScore: ParsedDemoDocument_team_player_score
-    ) => ParsedDemoDocument_team_player_score
+      currentScore: ParsedDemoData_team_player_score
+    ) => ParsedDemoData_team_player_score
   ) {
     const player = this.getPlayer(steam64Id);
     if (!player) return;
@@ -92,15 +92,15 @@ export class ParsedDemoWriter {
     }
   }
 
-  recordEvent(roundNumber: number, event: ParsedDemoDocument_round_event) {
+  recordEvent(roundNumber: number, event: ParsedDemoData_round_event) {
     const round = this.getRound(roundNumber);
     round.events.push(event);
   }
 
   finalise(opts: {
     finalTeamScores: {
-      CT: ParsedDemoDocument_team_score;
-      T: ParsedDemoDocument_team_score;
+      CT: ParsedDemoData_team_score;
+      T: ParsedDemoData_team_score;
     };
     mapName: string;
     serverName: string;
