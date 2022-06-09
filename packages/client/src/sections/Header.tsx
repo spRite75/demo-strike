@@ -42,7 +42,10 @@ export function Header() {
             </Button>
           )}
           {needsProfile && (
-            <Button color="accent" onClick={() => setShowUploadModal(true)}>
+            <Button
+              color="accent"
+              onClick={() => setShowCreateProfileModal(true)}
+            >
               Create profile to upload demos
             </Button>
           )}

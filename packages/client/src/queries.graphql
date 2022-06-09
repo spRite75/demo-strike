@@ -31,32 +31,7 @@ query GetPlayer($steam64Id: ID!) {
 query GetPlayerMatches($steam64Id: ID!) {
   matches(params: { playerSteam64Id: $steam64Id }) {
     id
-    matchTimeStamp
-    mapName
-    counterTerroristScore {
-      firstHalf
-      secondHalf
-      total
-      playerScores {
-        steam64Id
-        displayName
-        kills
-        assists
-        deaths
-      }
-    }
-    terroristScore {
-      firstHalf
-      secondHalf
-      total
-      playerScores {
-        steam64Id
-        displayName
-        kills
-        assists
-        deaths
-      }
-    }
+    matchTimestamp
   }
 }
 
