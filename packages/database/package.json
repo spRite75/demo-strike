@@ -1,5 +1,5 @@
 {
-  "name": "database",
+  "name": "demo-strike-database",
   "private": true,
   "license": "UNLICENSED",
   "devDependencies": {

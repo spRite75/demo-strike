@@ -1,5 +1,5 @@
 overwrite: true
-schema: "packages/functions/src/graphql/schema.graphql"
+schema: "packages/graphql/schema.graphql"
 documents: "packages/client/src/**/*.graphql"
 generates:
   # Client Code
@@ -17,7 +17,7 @@ generates:
       - "introspection"
 
   # GraphQL Server Code
-  packages/functions/src/graphql/generated/graphql.ts:
+  packages/graphql/src/generated/graphql.ts:
     plugins:
       - "typescript"
       - "typescript-resolvers"
@@ -25,6 +25,6 @@ generates:
       contextType: ../#Context
       scalars:
         DateTime: luxon#DateTime
-  packages/functions/src/graphql/generated/graphql.schema.json:
+  packages/graphql/src/generated/graphql.schema.json:
     plugins:
       - "introspection"

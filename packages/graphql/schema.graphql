@@ -1,0 +1,114 @@
+scalar DateTime
+
+enum CacheControlScope {
+  PUBLIC
+  PRIVATE
+}
+
+directive @cacheControl(
+  maxAge: Int
+  scope: CacheControlScope
+  inheritMaxAge: Boolean
+) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
+
+# Query types
+type Query {
+  hello: String! @cacheControl(maxAge: 600)
+  players: [Player!]! @cacheControl(maxAge: 30)
+  player(params: GetPlayerInput!): Player @cacheControl(maxAge: 60)
+  matches(params: GetMatchesInput!): [PlayerMatch!]! @cacheControl(maxAge: 60)
+  myProfile: UserProfile @cacheControl(maxAge: 30, scope: PRIVATE)
+  myMatches: [Match!]! @cacheControl(maxAge: 30, scope: PRIVATE)
+}
+
+input GetPlayerInput {
+  steam64Id: ID!
+}
+
+input GetMatchesInput {
+  playerSteam64Id: ID!
+}
+
+type Player @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  steam64Id: String!
+  displayName: String!
+  demoCount: Int!
+  lastPlayedTimestamp: DateTime!
+  profileUrl: String
+  avatarUrl: PlayerAvatarUrl
+}
+
+type PlayerAvatarUrl @cacheControl(inheritMaxAge: true) {
+  default: String!
+  medium: String!
+  full: String!
+}
+
+type UserProfile @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  displayName: String!
+  steam64Id: String!
+}
+
+enum MatchType {
+  VALVE
+}
+
+type PlayerMatch @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  matchTimestamp: DateTime!
+  matchType: MatchType!
+  rank: String!
+  mapName: String!
+  teamScore: Int!
+  enemyTeamScore: Int!
+  kills: Int!
+  assists: Int!
+  flashAssists: Int!
+  deaths: Int!
+  headshotPercentage: String!
+}
+
+type Match @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  matchTimeStamp: DateTime!
+  mapName: String!
+  terroristScore: MatchScore!
+  counterTerroristScore: MatchScore!
+}
+
+type MatchScore @cacheControl(inheritMaxAge: true) {
+  firstHalf: Int!
+  secondHalf: Int!
+  total: Int!
+  playerScores: [PlayerScore!]!
+}
+
+type PlayerScore @cacheControl(inheritMaxAge: true) {
+  steam64Id: String!
+  displayName: String!
+  kills: Int!
+  assists: Int!
+  deaths: Int!
+}
+
+# Mutation types
+type Mutation {
+  createProfile(input: CreateProfileInput!): UserProfile!
+  uploadDemos(input: UploadDemosInput!): Int!
+}
+
+input CreateProfileInput {
+  displayName: String!
+  steam64Id: String!
+}
+
+input UploadDemosInput {
+  demos: [DemoInput!]!
+}
+
+input DemoInput {
+  fileName: String!
+  lastModified: DateTime!
+}
