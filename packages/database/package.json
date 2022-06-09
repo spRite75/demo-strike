@@ -1,0 +1,16 @@
+{
+  "name": "database",
+  "private": true,
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "prisma": "^3.15.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^3.15.0"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "deploy": "prisma migrate deploy"
+  }
+}

@@ -1,0 +1,10 @@
+services:
+  db:
+    extends:
+      file: packages/database/docker-compose.yml
+      service: db
+
+  db_admin:
+    extends:
+      file: packages/database/docker-compose.yml
+      service: adminer
