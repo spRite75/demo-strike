@@ -1,4 +1,19 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "parsed-demos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "playersSteam64Ids",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "officialMatchTimestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
