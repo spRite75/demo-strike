@@ -4,7 +4,7 @@
   "description": "A project to parse CSGO Demos and provide insights into history and stats.",
   "workspaces": [
     "packages/client",
-    "packages/functions"
+    "packages/server"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
