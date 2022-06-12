@@ -10,6 +10,6 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(username: string, password: string) {
-    return this.authService.logIn({ username, password });
+    return this.authService.validateUser({ username, password });
   }
 }

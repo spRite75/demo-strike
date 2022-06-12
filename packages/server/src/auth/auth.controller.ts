@@ -1,6 +1,18 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import {
+  Request,
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  UseGuards,
+  Get,
+} from "@nestjs/common";
+import { LocalUser } from "@prisma/client";
 import { IsNotEmpty } from "class-validator";
+import { runInThisContext } from "vm";
 import { AuthService } from "./auth.service";
+import { JwtAuthGuard } from "./jwt.guard";
+import { LocalAuthGuard } from "./local.guard";
 
 export class RegisterRequest {
   @IsNotEmpty()
@@ -25,9 +37,17 @@ export class AuthController {
     return this.authService.register(registerRequest);
   }
 
+  @UseGuards(LocalAuthGuard)
   @Post("logIn")
   @HttpCode(200)
-  logIn(@Body() logInRequest: LogInRequest) {
-    return this.authService.logIn(logInRequest);
+  logIn(@Request() req: Express.Request) {
+    const user = req.user as unknown as LocalUser;
+    return this.authService.logIn(user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  getMe(@Request() req: Express.Request) {
+    return req.user;
   }
 }
