@@ -14,6 +14,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ParsingService } from "./parsing/parsing.service";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DemoFileService } from './demo-file/demo-file.service';
+import { ParsingController } from './parsing/parsing.controller';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { DemoFileService } from './demo-file/demo-file.service';
     }),
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController, AuthController],
+  controllers: [AppController, AuthController, ParsingController],
   providers: [
     AppService,
     // Auth
