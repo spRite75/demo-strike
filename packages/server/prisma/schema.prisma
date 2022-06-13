@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgres"
   url      = env("DATABASE_URL")
 }
 
@@ -11,4 +11,11 @@ model LocalUser {
   id Int @id @default(autoincrement())
   username String @unique
   password String
+}
+
+model DemoFile {
+  id Int @id @default(autoincrement())
+  filepath String @unique
+  parsed Boolean @default(false)
+  deleted Boolean @default(false)
 }

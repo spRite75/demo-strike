@@ -9,14 +9,25 @@ import { jwtConstants } from "./auth/constants";
 import { JwtStrategy } from "./auth/jwt.strategy";
 import { LocalStrategy } from "./auth/local.strategy";
 import { PrismaService } from "./prisma/prisma.service";
+import { FilesystemService } from "./filesystem/filesystem.service";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ParsingService } from "./parsing/parsing.service";
+import { ScheduleModule } from "@nestjs/schedule";
+import { DemoFileService } from './demo-file/demo-file.service';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     PassportModule,
-    JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: "60s" },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow("JWT_SECRET"),
+        signOptions: { expiresIn: "60s" },
+      }),
+      inject: [ConfigService],
     }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController, AuthController],
   providers: [
@@ -27,6 +38,10 @@ import { PrismaService } from "./prisma/prisma.service";
     JwtStrategy,
     // DB
     PrismaService,
+    // Other
+    FilesystemService,
+    ParsingService,
+    DemoFileService,
   ],
 })
 export class AppModule {}
