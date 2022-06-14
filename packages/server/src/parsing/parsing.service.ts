@@ -5,9 +5,10 @@ import { DemoFile } from "demofile";
 import { DemoFile as dbDemoFile } from "@prisma/client";
 import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
+import { DateTime } from "luxon";
+import { createHash } from "crypto";
 
 import { DemoFileService } from "src/demo-file/demo-file.service";
-import { DateTime } from "luxon";
 import { PrismaService } from "src/prisma/prisma.service";
 
 interface ParsedDemoInfo {
@@ -16,7 +17,8 @@ interface ParsedDemoInfo {
   steam64Ids: string[];
 }
 
-interface ParsedDemoFile {
+interface Match {
+  id: string;
   mapName: string;
   serverName: string;
   clientName: string;
@@ -47,7 +49,7 @@ export class ParsingService {
     this.unparsedDemoFileObservable
       .pipe(filter(({ filepath }) => filepath.endsWith(".dem")))
       .pipe(
-        concatMap<dbDemoFile, Promise<ParsedDemoFile>>(
+        concatMap<dbDemoFile, Promise<{ demoFile: dbDemoFile; match: Match }>>(
           (demoFileToParse) =>
             new Promise(async (resolve, reject) => {
               const buffer = await readFile(demoFileToParse.filepath);
@@ -99,17 +101,43 @@ export class ParsingService {
                 reject(error);
               });
 
-              demoFile.on("end", (event) => {
+              demoFile.on("end", async (event) => {
                 if (event.error) {
                   console.error("Error during parsing:", event.error);
                   reject(event.error);
                 }
 
+                const {
+                  header: { clientName, serverName, mapName, playbackTicks },
+                } = demoFile;
+
+                const playerSteamIds: string[] = [];
+
+                players.forEach((_, steam64Id) =>
+                  playerSteamIds.push(steam64Id)
+                );
+
+                // TODO: Review composite key idea
+                const compositeKey: string[] = [
+                  clientName,
+                  serverName,
+                  mapName,
+                  `${playbackTicks}`,
+                  ...playerSteamIds,
+                ];
+
+                const hash = createHash("sha256");
+                compositeKey.forEach((value) => hash.write(value.trim()));
+
                 resolve({
-                  clientName: demoFile.header.clientName,
-                  serverName: demoFile.header.serverName,
-                  mapName: demoFile.header.mapName,
-                  players,
+                  demoFile: demoFileToParse,
+                  match: {
+                    id: hash.digest("base64"),
+                    clientName,
+                    serverName,
+                    mapName,
+                    players,
+                  },
                 });
               });
 
@@ -117,7 +145,25 @@ export class ParsingService {
             })
         )
       )
-      .subscribe({ next: (data) => console.log(data) });
+      .pipe(
+        concatMap(
+          async ({
+            demoFile: { filepath },
+            match: { id, clientName, serverName, mapName, players },
+          }) => {
+            console.log("got ", filepath);
+            await this.prismaService.client.match.create({
+              data: {
+                id,
+                clientName,
+                serverName,
+                mapName,
+                demoFile: { connect: { filepath } },
+              },
+            });
+          }
+        )
+      );
 
     // Parse .dem.info files
     this.unparsedDemoFileObservable

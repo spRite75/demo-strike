@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { DemoFile } from "@prisma/client";
-import { Subject, bufferTime, concatMap, filter } from "rxjs";
+import { Subject, concatMap } from "rxjs";
 import { FilesystemService } from "src/filesystem/filesystem.service";
 import { PrismaService } from "src/prisma/prisma.service";
 
@@ -19,7 +19,10 @@ export class DemoFileService {
         // Use concat map to preserve processing order with async/await
         concatMap(async (fileEvents) => {
           for (const fileEvent of fileEvents) {
-            const { filepath } = fileEvent;
+            const { filepath, stats } = fileEvent;
+            const fileCreated = stats?.ctime ?? new Date(0);
+            const fileUpdated = stats?.mtime ?? new Date(0);
+
             const existingDemoFile =
               await this.prismaService.client.demoFile.findUnique({
                 where: { filepath },
@@ -30,14 +33,19 @@ export class DemoFileService {
                 if (!existingDemoFile) {
                   const demoFile =
                     await this.prismaService.client.demoFile.create({
-                      data: { filepath },
+                      data: { filepath, fileCreated, fileUpdated },
                     });
                   this.unparsedDemoFileSubject.next(demoFile);
                 } else if (existingDemoFile.deleted) {
                   const demoFile =
                     await this.prismaService.client.demoFile.update({
                       where: { filepath },
-                      data: { deleted: false, parsed: false },
+                      data: {
+                        fileCreated,
+                        fileUpdated,
+                        deleted: false,
+                        parsed: false,
+                      },
                     });
                   this.unparsedDemoFileSubject.next(demoFile);
                 }
@@ -48,7 +56,7 @@ export class DemoFileService {
                   const demoFile =
                     await this.prismaService.client.demoFile.update({
                       where: { filepath },
-                      data: { parsed: false },
+                      data: { fileUpdated, parsed: false },
                     });
                   this.unparsedDemoFileSubject.next(demoFile);
                 }

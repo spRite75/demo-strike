@@ -8,14 +8,38 @@ datasource db {
 }
 
 model LocalUser {
-  id Int @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   username String @unique
   password String
 }
 
 model DemoFile {
-  id Int @id @default(autoincrement())
-  filepath String @unique
-  parsed Boolean @default(false)
-  deleted Boolean @default(false)
+  id          Int      @id @default(autoincrement())
+  filepath    String   @unique
+  fileCreated DateTime
+  fileUpdated DateTime
+  parsed      Boolean  @default(false)
+  deleted     Boolean  @default(false)
+  Match       Match?
+}
+
+model Match {
+  id         String        @id
+  demoFile   DemoFile      @relation(fields: [demoFileId], references: [id])
+  demoFileId Int           @unique
+  mapName    String
+  serverName String
+  clientName String
+  players    MatchPlayer[]
+}
+
+model MatchPlayer {
+  id                 Int     @id @default(autoincrement())
+  steam64Id          String
+  kills              Int
+  assists            Int
+  deaths             Int
+  headshotPercentage String
+  Match              Match?  @relation(fields: [matchId], references: [id])
+  matchId            String?
 }

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { mkdirSync } from "fs";
+import { mkdirSync, Stats } from "fs";
 import * as chokidar from "chokidar";
 import { PrismaService } from "src/prisma/prisma.service";
 import { bufferTime, filter, Subject } from "rxjs";
@@ -15,6 +15,7 @@ export class FilesystemService {
   private readonly demoFileSubject = new Subject<{
     event: "add" | "change" | "delete";
     filepath: string;
+    stats?: Stats;
   }>();
   readonly demoFileObservable = this.demoFileSubject
     .asObservable()
@@ -22,19 +23,19 @@ export class FilesystemService {
     .pipe(filter((i) => i.length > 0));
 
   constructor(private configService: ConfigService) {
-    // Watch demos
+    // Watch demos directory
     mkdirSync(this.demosDir, { recursive: true });
     this.demosWatcher = chokidar.watch(this.demosDir);
 
-    this.demosWatcher.on("add", async (filepath) => {
+    this.demosWatcher.on("add", async (filepath, stats) => {
       if (filepath.endsWith(".dem") || filepath.endsWith(".dem.info")) {
-        this.demoFileSubject.next({ event: "add", filepath });
+        this.demoFileSubject.next({ event: "add", filepath, stats });
       }
     });
 
-    this.demosWatcher.on("change", async (filepath) => {
+    this.demosWatcher.on("change", async (filepath, stats) => {
       if (filepath.endsWith(".dem") || filepath.endsWith(".dem.info")) {
-        this.demoFileSubject.next({ event: "change", filepath });
+        this.demoFileSubject.next({ event: "change", filepath, stats });
       }
     });
 
