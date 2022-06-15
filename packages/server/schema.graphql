@@ -1,0 +1,56 @@
+scalar DateTime
+
+enum CacheControlScope {
+  PUBLIC
+  PRIVATE
+}
+
+directive @cacheControl(
+  maxAge: Int
+  scope: CacheControlScope
+  inheritMaxAge: Boolean
+) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
+
+# Query types
+type Query {
+  hello: String! @cacheControl(maxAge: 600)
+  players: [Player!]! @cacheControl(maxAge: 60)
+  matches: [Match!]! @cacheControl(maxAge: 60)
+}
+
+type Player @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  steam64Id: String!
+  displayName: String!
+  demoCount: Int!
+  lastPlayedTimestamp: DateTime!
+  profileUrl: String!
+  avatarUrl: PlayerAvatarUrl!
+}
+
+type PlayerAvatarUrl @cacheControl(inheritMaxAge: true) {
+  default: String!
+  medium: String!
+  full: String!
+}
+
+type Match @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  mapName: String!
+  players: [MatchPlayer!]!
+}
+
+type MatchPlayer @cacheControl(inheritMaxAge: true) {
+  id: ID!
+  steam64Id: String!
+  displayName: String!
+  kills: Int!
+  assists: Int!
+  deaths: Int!
+  headshotPercentage: String!
+}
+
+# Mutation types
+type Mutation {
+  noop: String!
+}

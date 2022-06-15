@@ -23,6 +23,17 @@ model DemoFile {
   Match       Match?
 }
 
+model Player {
+  id                    Int           @id @default(autoincrement())
+  steam64Id             String        @unique
+  displayName           String
+  steamProfileUrl       String?
+  steamAvatarUrlDefault String?
+  steamAvatarUrlMedium  String?
+  steamAvatarUrlFull    String?
+  matchPlayer           MatchPlayer[]
+}
+
 model Match {
   id         String        @id
   demoFile   DemoFile      @relation(fields: [demoFileId], references: [id])
@@ -34,14 +45,16 @@ model Match {
 }
 
 model MatchPlayer {
-  Match              Match  @relation(fields: [matchId], references: [id])
+  Match              Match   @relation(fields: [matchId], references: [id])
   matchId            String
   steam64Id          String
-  displayName        String @default("player")
+  displayName        String  @default("player")
   kills              Int
   assists            Int
   deaths             Int
   headshotPercentage String
+  Player             Player? @relation(fields: [playerId], references: [id])
+  playerId           Int?
 
   @@id([matchId, steam64Id])
 }

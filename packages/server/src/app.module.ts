@@ -15,6 +15,7 @@ import { ParsingService } from "./parsing/parsing.service";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DemoFileService } from './demo-file/demo-file.service';
 import { ParsingController } from './parsing/parsing.controller';
+import { GraphqlController } from './graphql/graphql.controller';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { ParsingController } from './parsing/parsing.controller';
     }),
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController, AuthController, ParsingController],
+  controllers: [AppController, AuthController, ParsingController, GraphqlController],
   providers: [
     AppService,
     // Auth
