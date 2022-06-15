@@ -1,14 +1,19 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { DemoFile } from "@prisma/client";
-import { Subject, concatMap } from "rxjs";
+import { Subject, concatMap, tap } from "rxjs";
 import { FilesystemService } from "src/filesystem/filesystem.service";
 import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
 export class DemoFileService {
+  private readonly logger = new Logger(DemoFileService.name);
+
   private readonly unparsedDemoFileSubject = new Subject<DemoFile>();
-  readonly unparsedDemoFileObservable =
-    this.unparsedDemoFileSubject.asObservable();
+  readonly unparsedDemoFileObservable = this.unparsedDemoFileSubject.pipe(
+    tap((demoFile) =>
+      this.logger.verbose(`emitting ${demoFile.filepath} for parsing`)
+    )
+  );
 
   constructor(
     filesystemService: FilesystemService,
@@ -75,9 +80,5 @@ export class DemoFileService {
         })
       )
       .subscribe();
-  }
-
-  private async getExisitingDemoFile(filepath: string) {
-    return;
   }
 }

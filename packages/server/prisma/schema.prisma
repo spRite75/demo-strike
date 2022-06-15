@@ -34,12 +34,14 @@ model Match {
 }
 
 model MatchPlayer {
-  id                 Int     @id @default(autoincrement())
+  Match              Match  @relation(fields: [matchId], references: [id])
+  matchId            String
   steam64Id          String
+  displayName        String @default("player")
   kills              Int
   assists            Int
   deaths             Int
   headshotPercentage String
-  Match              Match?  @relation(fields: [matchId], references: [id])
-  matchId            String?
+
+  @@id([matchId, steam64Id])
 }

@@ -1,12 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { mkdirSync, Stats } from "fs";
 import * as chokidar from "chokidar";
-import { PrismaService } from "src/prisma/prisma.service";
-import { bufferTime, filter, Subject } from "rxjs";
+import { bufferTime, filter, Subject, tap } from "rxjs";
 
 @Injectable()
 export class FilesystemService {
+  private readonly logger = new Logger(FilesystemService.name);
   private readonly demosDir = this.configService.getOrThrow(
     "FILESYSTEM_DEMOS_ROOT"
   );
@@ -19,6 +19,9 @@ export class FilesystemService {
   }>();
   readonly demoFileObservable = this.demoFileSubject
     .asObservable()
+    .pipe(
+      tap(({ event, filepath }) => this.logger.verbose(`${event} ${filepath}`))
+    )
     .pipe(bufferTime(1000))
     .pipe(filter((i) => i.length > 0));
 
