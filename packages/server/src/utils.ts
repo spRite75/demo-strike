@@ -16,3 +16,9 @@ export function chunk<T>(input: T[], size: number) {
 export function notNullish<T>(value: T | null | undefined): value is T {
   return !!value;
 }
+
+export type ResolvedReturnType<T> = T extends (
+  ...args: any[]
+) => Promise<infer R>
+  ? R
+  : never;

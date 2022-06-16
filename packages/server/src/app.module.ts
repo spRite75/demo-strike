@@ -16,6 +16,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { DemoFileService } from './demo-file/demo-file.service';
 import { ParsingController } from './parsing/parsing.controller';
 import { GraphqlController } from './graphql/graphql.controller';
+import { SteamWebApiService } from './steam-web-api/steam-web-api.service';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { GraphqlController } from './graphql/graphql.controller';
     FilesystemService,
     ParsingService,
     DemoFileService,
+    SteamWebApiService,
   ],
 })
 export class AppModule {}

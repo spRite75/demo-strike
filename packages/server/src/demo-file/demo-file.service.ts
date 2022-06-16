@@ -8,9 +8,11 @@ import { PrismaService } from "src/prisma/prisma.service";
 export class DemoFileService {
   private readonly logger = new Logger(DemoFileService.name);
 
-  private readonly unparsedDemoFileSubject = new Subject<DemoFile>();
+  private readonly unparsedDemoFileSubject = new Subject<{
+    demoFile: DemoFile;
+  }>();
   readonly unparsedDemoFileObservable = this.unparsedDemoFileSubject.pipe(
-    tap((demoFile) =>
+    tap(({ demoFile }) =>
       this.logger.verbose(`emitting ${demoFile.filepath} for parsing`)
     )
   );
@@ -40,7 +42,7 @@ export class DemoFileService {
                     await this.prismaService.client.demoFile.create({
                       data: { filepath, fileCreated, fileUpdated },
                     });
-                  this.unparsedDemoFileSubject.next(demoFile);
+                  this.unparsedDemoFileSubject.next({ demoFile });
                 } else if (existingDemoFile.deleted) {
                   const demoFile =
                     await this.prismaService.client.demoFile.update({
@@ -52,7 +54,7 @@ export class DemoFileService {
                         parsed: false,
                       },
                     });
-                  this.unparsedDemoFileSubject.next(demoFile);
+                  this.unparsedDemoFileSubject.next({ demoFile });
                 }
                 break;
               }
@@ -63,7 +65,7 @@ export class DemoFileService {
                       where: { filepath },
                       data: { fileUpdated, parsed: false },
                     });
-                  this.unparsedDemoFileSubject.next(demoFile);
+                  this.unparsedDemoFileSubject.next({ demoFile });
                 }
                 break;
               }
