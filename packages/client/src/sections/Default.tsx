@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { useGetPlayersQuery } from "../generated/graphql";
+import { useGetPlayerListQuery } from "../generated/graphql";
 import { renderTimestamp } from "../utils";
 
 export function Default() {
-  const { data, loading } = useGetPlayersQuery();
+  const { data, loading } = useGetPlayerListQuery();
   return (
     <div className="container mx-auto pt-5">
       <h1 className="text-2xl text-center my-1">Player List</h1>
@@ -21,11 +21,14 @@ export function Default() {
               <tr key={player.steam64Id}>
                 <td>
                   <span>
-                    <a href={player.profileUrl ?? "#"} className="inline mr-4">
+                    <a
+                      href={player.steamProfileUrl ?? "#"}
+                      className="inline mr-4"
+                    >
                       <img
                         className="inline h-16 w-16"
                         src={
-                          player.avatarUrl?.medium ??
+                          player.steamAvatarUrlMedium ??
                           "https://steamuserimages-a.akamaihd.net/ugc/868480752636433334/1D2881C5C9B3AD28A1D8852903A8F9E1FF45C2C8/"
                         }
                         alt="Player avatar"

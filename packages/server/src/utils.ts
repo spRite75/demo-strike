@@ -22,3 +22,33 @@ export type ResolvedReturnType<T> = T extends (
 ) => Promise<infer R>
   ? R
   : never;
+
+/**
+ * Use with `Array.prototype.sort` to specify how to sort an array.
+ * @param key key to order by
+ * @param order ascending or descending order
+ * @returns
+ */
+export function orderBy<T>(
+  key: keyof T,
+  order: "asc" | "desc"
+): (a: T, b: T) => -1 | 0 | 1 {
+  return (a, b) => {
+    let aVal = a[key];
+    let bVal = b[key];
+
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      aVal = aVal.toLocaleLowerCase() as unknown as T[keyof T];
+      bVal = bVal.toLocaleLowerCase() as unknown as T[keyof T];
+    }
+
+    switch (order) {
+      case "asc": {
+        return aVal > bVal ? 1 : bVal > aVal ? -1 : 0;
+      }
+      case "desc": {
+        return aVal < bVal ? 1 : bVal < aVal ? -1 : 0;
+      }
+    }
+  };
+}

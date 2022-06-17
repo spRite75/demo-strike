@@ -2,86 +2,14 @@ query GetHello {
   hello
 }
 
-query GetPlayers {
+query GetPlayerList {
   players {
     id
     steam64Id
     displayName
     demoCount
     lastPlayedTimestamp
-    avatarUrl {
-      medium
-    }
-    profileUrl
+    steamProfileUrl
+    steamAvatarUrlMedium
   }
-}
-
-query GetPlayer($steam64Id: ID!) {
-  player(params: { steam64Id: $steam64Id }) {
-    id
-    displayName
-    demoCount
-    profileUrl
-    avatarUrl {
-      full
-    }
-  }
-}
-
-query GetPlayerMatches($steam64Id: ID!) {
-  matches(params: { playerSteam64Id: $steam64Id }) {
-    id
-    matchTimestamp
-  }
-}
-
-query GetProfile {
-  myProfile {
-    id
-    displayName
-    steam64Id
-  }
-}
-
-query GetMyMatches {
-  myMatches {
-    id
-    matchTimeStamp
-    counterTerroristScore {
-      firstHalf
-      secondHalf
-      total
-      playerScores {
-        steam64Id
-        displayName
-        kills
-        assists
-        deaths
-      }
-    }
-    terroristScore {
-      firstHalf
-      secondHalf
-      total
-      playerScores {
-        steam64Id
-        displayName
-        kills
-        assists
-        deaths
-      }
-    }
-  }
-}
-
-mutation CreateProfile($input: CreateProfileInput!) {
-  createProfile(input: $input) {
-    id
-    displayName
-    steam64Id
-  }
-}
-
-mutation UploadDemos($input: UploadDemosInput!) {
-  uploadDemos(input: $input)
 }

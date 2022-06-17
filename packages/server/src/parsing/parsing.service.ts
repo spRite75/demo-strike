@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { concatMap, filter, Subject, merge } from "rxjs";
 import { readFile } from "fs/promises";
 import { DemoFile } from "demofile";
-import { DemoFile as dbDemoFile } from "@prisma/client";
+import { DemoFile as dbDemoFile, Player as dbPlayer } from "@prisma/client";
 import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
 import { DateTime } from "luxon";
@@ -11,6 +11,8 @@ import { createHash } from "crypto";
 import { DemoFileService } from "src/demo-file/demo-file.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { notNullish } from "src/utils";
+import { match } from "assert";
+import { SteamWebApiService } from "src/steam-web-api/steam-web-api.service";
 
 interface ParsedDemoInfo {
   officialMatchId: string;
@@ -48,15 +50,16 @@ export class ParsingService {
 
   constructor(
     private demoFileService: DemoFileService,
+    private steamWebApiService: SteamWebApiService,
     private prismaService: PrismaService
   ) {
     // Parse .dem files
     this.unparsedDemoFileObservable
       .pipe(filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem")))
-      .pipe(concatMap(this.loadAndParseDemoFile))
+      .pipe(concatMap(this.loadAndParseDemoFile.bind(this)))
       .pipe(filter(notNullish))
-      .pipe(concatMap(this.saveMatch))
-      .pipe(concatMap(this.updatePlayerList))
+      .pipe(concatMap(this.updatePlayerList.bind(this)))
+      .pipe(concatMap(this.saveMatch.bind(this)))
       .subscribe(({ demoFile: { filepath } }) =>
         this.logger.verbose(`finished processing ${filepath}`)
       );
@@ -66,7 +69,7 @@ export class ParsingService {
       .pipe(
         filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem.info"))
       )
-      .pipe(concatMap(this.loadAndParseDemoInfoFile))
+      .pipe(concatMap(this.loadAndParseDemoInfoFile.bind(this)))
       .subscribe({ next: (data) => console.log(data) });
   }
 
@@ -191,12 +194,13 @@ export class ParsingService {
     });
   }
 
-  private async saveMatch<T extends { demoFile: dbDemoFile; match: Match }>(
-    incomingEvent: T
-  ): Promise<T> {
+  private async saveMatch<
+    T extends { demoFile: dbDemoFile; match: Match; updatedPlayers: dbPlayer[] }
+  >(incomingEvent: T): Promise<T> {
     const {
       demoFile: { filepath },
       match: { id, clientName, serverName, mapName, players },
+      updatedPlayers,
     } = incomingEvent;
     this.logger.verbose(`deleting existing players from Match ${id}`);
     await this.prismaService.client.matchPlayer.deleteMany({
@@ -218,10 +222,21 @@ export class ParsingService {
     });
     this.logger.verbose(`adding players for Match ${id}`);
     await this.prismaService.client.matchPlayer.createMany({
-      data: Array.from(players.values()).map((player) => ({
-        matchId: id,
-        ...player,
-      })),
+      data: Array.from(players.values())
+        .map((player) => {
+          const playerId = updatedPlayers.find(
+            (p) => p.steam64Id === player.steam64Id
+          )?.id;
+
+          if (!playerId) return null;
+
+          return {
+            ...player,
+            matchId: id,
+            playerId,
+          };
+        })
+        .filter(notNullish),
     });
 
     return incomingEvent;
@@ -229,8 +244,43 @@ export class ParsingService {
 
   private async updatePlayerList<T extends { match: Match }>(
     incomingEvent: T
-  ): Promise<T> {
-    return incomingEvent;
+  ): Promise<T & { updatedPlayers: dbPlayer[] }> {
+    const {
+      match: { players },
+    } = incomingEvent;
+    const playersArray = Array.from(players.values());
+
+    const playerSummaries = await this.steamWebApiService.getPlayerSummaries(
+      playersArray.map(({ steam64Id }) => steam64Id)
+    );
+
+    const updatedPlayers = await Promise.all(
+      playersArray.map((player) => {
+        const playerSummary = playerSummaries.get(player.steam64Id);
+
+        return this.prismaService.client.player.upsert({
+          where: { steam64Id: player.steam64Id },
+          create: {
+            steam64Id: player.steam64Id,
+            displayName: playerSummary
+              ? playerSummary.displayName
+              : player.displayName,
+            steamProfileUrl: playerSummary && playerSummary.profileUrl,
+            steamAvatarUrlDefault: playerSummary && playerSummary.avatar,
+            steamAvatarUrlMedium: playerSummary && playerSummary.avatarMedium,
+            steamAvatarUrlFull: playerSummary && playerSummary.avatarFull,
+          },
+          update: {
+            displayName: playerSummary && playerSummary.displayName,
+            steamAvatarUrlDefault: playerSummary && playerSummary.avatar,
+            steamAvatarUrlMedium: playerSummary && playerSummary.avatarMedium,
+            steamAvatarUrlFull: playerSummary && playerSummary.avatarFull,
+          },
+        });
+      })
+    );
+
+    return { ...incomingEvent, updatedPlayers };
   }
 
   private async loadAndParseDemoInfoFile<T extends { demoFile: dbDemoFile }>(

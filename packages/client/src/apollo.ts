@@ -3,12 +3,9 @@ import { createPersistedQueryLink } from "@apollo/client/link/persisted-queries"
 import { setContext } from "@apollo/client/link/context";
 import { sha256 } from "crypto-hash";
 
-import { Firebase } from "./firebase";
-
-export function getApolloClient(firebase: Firebase) {
+export function getApolloClient() {
   const authLink = setContext(async (_, { headers }) => {
-    const user = firebase.getAuth().currentUser;
-    const authorization = user ? await user.getIdToken() : "";
+    const authorization = "some-id-token";
 
     return {
       headers: {
@@ -24,7 +21,7 @@ export function getApolloClient(firebase: Firebase) {
   });
 
   const httpLink = createHttpLink({
-    uri: "/graphql",
+    uri: "/api/graphql",
     useGETForQueries: true,
   });
 

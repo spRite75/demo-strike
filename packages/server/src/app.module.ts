@@ -13,10 +13,12 @@ import { FilesystemService } from "./filesystem/filesystem.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ParsingService } from "./parsing/parsing.service";
 import { ScheduleModule } from "@nestjs/schedule";
-import { DemoFileService } from './demo-file/demo-file.service';
-import { ParsingController } from './parsing/parsing.controller';
-import { GraphqlController } from './graphql/graphql.controller';
-import { SteamWebApiService } from './steam-web-api/steam-web-api.service';
+import { DemoFileService } from "./demo-file/demo-file.service";
+import { ParsingController } from "./parsing/parsing.controller";
+import { GraphqlController } from "./graphql/graphql.controller";
+import { SteamWebApiService } from "./steam-web-api/steam-web-api.service";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
 
 @Module({
   imports: [
@@ -31,8 +33,17 @@ import { SteamWebApiService } from './steam-web-api/steam-web-api.service';
       inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, "..", "..", "client", "build"),
+      exclude: ["/api*"],
+    }),
   ],
-  controllers: [AppController, AuthController, ParsingController, GraphqlController],
+  controllers: [
+    AppController,
+    AuthController,
+    ParsingController,
+    GraphqlController,
+  ],
   providers: [
     AppService,
     // Auth

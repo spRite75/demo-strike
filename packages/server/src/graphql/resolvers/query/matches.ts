@@ -6,5 +6,11 @@ export const matches: QueryResolvers["matches"] = async (_, __, { prisma }) => {
     include: { players: true },
   });
 
-  return data;
+  return data.map((match) => ({
+    ...match,
+    players: match.players.map((player) => ({
+      ...player,
+      id: `${player.matchId}-${player.steam64Id}`,
+    })),
+  }));
 };

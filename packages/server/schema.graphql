@@ -14,8 +14,9 @@ directive @cacheControl(
 # Query types
 type Query {
   hello: String! @cacheControl(maxAge: 600)
+  player(steam64Id: String!): Player @cacheControl(maxAge: 60)
   players: [Player!]! @cacheControl(maxAge: 60)
-  matches: [Match!]! @cacheControl(maxAge: 60)
+  matches(steam64Id: String!): [Match!]! @cacheControl(maxAge: 60)
 }
 
 type Player @cacheControl(inheritMaxAge: true) {
@@ -24,14 +25,10 @@ type Player @cacheControl(inheritMaxAge: true) {
   displayName: String!
   demoCount: Int!
   lastPlayedTimestamp: DateTime!
-  profileUrl: String!
-  avatarUrl: PlayerAvatarUrl!
-}
-
-type PlayerAvatarUrl @cacheControl(inheritMaxAge: true) {
-  default: String!
-  medium: String!
-  full: String!
+  steamProfileUrl: String
+  steamAvatarUrlDefault: String
+  steamAvatarUrlMedium: String
+  steamAvatarUrlFull: String
 }
 
 type Match @cacheControl(inheritMaxAge: true) {

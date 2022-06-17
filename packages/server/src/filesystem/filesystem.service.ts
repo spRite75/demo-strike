@@ -28,7 +28,10 @@ export class FilesystemService {
   constructor(private configService: ConfigService) {
     // Watch demos directory
     mkdirSync(this.demosDir, { recursive: true });
-    this.demosWatcher = chokidar.watch(this.demosDir);
+    this.demosWatcher = chokidar.watch(this.demosDir, {
+      alwaysStat: true,
+      awaitWriteFinish: true,
+    });
 
     this.demosWatcher.on("add", async (filepath, stats) => {
       if (filepath.endsWith(".dem") || filepath.endsWith(".dem.info")) {
