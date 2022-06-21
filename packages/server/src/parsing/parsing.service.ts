@@ -2,7 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { concatMap, filter, Subject, merge } from "rxjs";
 import { readFile } from "fs/promises";
 import { DemoFile } from "demofile";
-import { DemoFile as dbDemoFile, Player as dbPlayer } from "@prisma/client";
+import {
+  DemoFile as dbDemoFile,
+  MatchPlayer,
+  Player as dbPlayer,
+} from "@prisma/client";
 import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
 import { DateTime } from "luxon";
@@ -13,6 +17,11 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { notNullish } from "src/utils";
 import { match } from "assert";
 import { SteamWebApiService } from "src/steam-web-api/steam-web-api.service";
+import {
+  getPlayerFinalTeamLetter,
+  getTeamLetter,
+  TeamLetter,
+} from "./demofile-helpers";
 
 interface ParsedDemoInfo {
   officialMatchId: string;
@@ -20,16 +29,27 @@ interface ParsedDemoInfo {
   steam64Ids: string[];
 }
 
-interface Match {
+interface ParsedMatch {
   id: string;
   mapName: string;
   serverName: string;
   clientName: string;
-  players: Map<string, Player>;
+  teams: Map<TeamLetter, ParsedMatchTeam>;
+  players: Map<string, ParsedMatchPlayer>;
 }
 
-class Player {
-  constructor(public steam64Id: string, public displayName: string) {}
+interface ParsedMatchTeam {
+  scoreFirstHalf: number;
+  scoreSecondHalf: number;
+  scoreTotal: number;
+}
+
+class ParsedMatchPlayer {
+  constructor(
+    public steam64Id: string,
+    public displayName: string,
+    public teamLetter: TeamLetter
+  ) {}
   kills = 0;
   assists = 0;
   deaths = 0;
@@ -76,7 +96,7 @@ export class ParsingService {
   async parseUnprocessed() {
     const unprocessedDemoFiles =
       await this.prismaService.client.demoFile.findMany({
-        where: { parsed: false, deleted: false },
+        where: { isParsed: false, isDeleted: false },
       });
 
     unprocessedDemoFiles.forEach((demoFile) =>
@@ -90,7 +110,7 @@ export class ParsingService {
 
   private async loadAndParseDemoFile<T extends { demoFile: dbDemoFile }>(
     incomingEvent: T
-  ): Promise<(T & { match: Match }) | null> {
+  ): Promise<(T & { match: ParsedMatch }) | null> {
     return new Promise(async (resolve, reject) => {
       const demoFileToParse = incomingEvent.demoFile;
       try {
@@ -99,7 +119,8 @@ export class ParsingService {
         this.logger.verbose(`loaded ${demoFileToParse.filepath}`);
         const demoFile = new DemoFile();
 
-        const players = new Map<string, Player>();
+        const teams = new Map<TeamLetter, ParsedMatchTeam>();
+        const players = new Map<string, ParsedMatchPlayer>();
 
         demoFile.gameEvents.on("event", ({ name: eventName, event }) => {
           switch (eventName) {
@@ -112,7 +133,11 @@ export class ParsingService {
                 }
                 players.set(
                   demoPlayer.steam64Id,
-                  new Player(demoPlayer.steam64Id, demoPlayer.name)
+                  new ParsedMatchPlayer(
+                    demoPlayer.steam64Id,
+                    demoPlayer.name,
+                    getPlayerFinalTeamLetter(demoFile, demoPlayer)
+                  )
                 );
               });
               break;
@@ -157,9 +182,19 @@ export class ParsingService {
             header: { clientName, serverName, mapName, playbackTicks },
           } = demoFile;
 
-          const playerSteamIds: string[] = [];
+          demoFile.teams.forEach((team) => {
+            const teamLetter = getTeamLetter(team.teamNumber);
+            if (teamLetter === "???") return;
 
-          players.forEach((_, steam64Id) => playerSteamIds.push(steam64Id));
+            const { scoreFirstHalf, scoreSecondHalf, score: scoreTotal } = team;
+            teams.set(teamLetter, {
+              scoreFirstHalf,
+              scoreSecondHalf,
+              scoreTotal,
+            });
+          });
+
+          const playerSteamIds = Array.from(players.keys()).sort();
 
           // TODO: Review composite key idea
           const compositeKey: string[] = [
@@ -176,10 +211,11 @@ export class ParsingService {
           resolve({
             ...incomingEvent,
             match: {
-              id: hash.digest("base64"),
+              id: hash.digest("hex"),
               clientName,
               serverName,
               mapName,
+              teams,
               players,
             },
           });
@@ -195,45 +231,85 @@ export class ParsingService {
   }
 
   private async saveMatch<
-    T extends { demoFile: dbDemoFile; match: Match; updatedPlayers: dbPlayer[] }
+    T extends {
+      demoFile: dbDemoFile;
+      match: ParsedMatch;
+      updatedPlayers: dbPlayer[];
+    }
   >(incomingEvent: T): Promise<T> {
     const {
       demoFile: { filepath },
-      match: { id, clientName, serverName, mapName, players },
+      match,
       updatedPlayers,
     } = incomingEvent;
-    this.logger.verbose(`deleting existing players from Match ${id}`);
+    const { teams, players } = match;
+    this.logger.verbose(`deleting existing players from Match ${match.id}`);
     await this.prismaService.client.matchPlayer.deleteMany({
-      where: { matchId: id },
+      where: { matchId: match.id },
     });
-    this.logger.verbose(`deleting existing Match ${id}`);
+    this.logger.verbose(`deleting existing teams from Match ${match.id}`);
+    await this.prismaService.client.matchTeam.deleteMany({
+      where: { matchId: match.id },
+    });
+    this.logger.verbose(`deleting existing Match ${match.id}`);
     await this.prismaService.client.match.deleteMany({
-      where: { id },
+      where: { id: match.id },
     });
-    this.logger.verbose(`saving Match ${id} from ${filepath}`);
-    await this.prismaService.client.match.create({
+    this.logger.verbose(`saving Match ${match.id} from ${filepath}`);
+    const { id: matchId } = await this.prismaService.client.match.create({
       data: {
-        id,
-        clientName,
-        serverName,
-        mapName,
+        id: match.id,
+        clientName: match.clientName,
+        serverName: match.serverName,
+        mapName: match.mapName,
         demoFile: { connect: { filepath } },
       },
     });
-    this.logger.verbose(`adding players for Match ${id}`);
+    this.logger.verbose(`adding teams for Match ${match.id}`);
+    const matchTeamId = (matchId: string, teamLetter: TeamLetter) =>
+      `${matchId}_${teamLetter}`;
+    await this.prismaService.client.matchTeam.createMany({
+      data: Array.from(teams).map(
+        ([teamLetter, { scoreFirstHalf, scoreSecondHalf, scoreTotal }]) => ({
+          id: matchTeamId(matchId, teamLetter),
+          matchId,
+          team: teamLetter,
+          scoreFirstHalf,
+          scoreSecondHalf,
+          scoreTotal,
+        })
+      ),
+    });
+
+    this.logger.verbose(`adding players for Match ${match.id}`);
     await this.prismaService.client.matchPlayer.createMany({
       data: Array.from(players.values())
-        .map((player) => {
+        .map((player): MatchPlayer | null => {
           const playerId = updatedPlayers.find(
             (p) => p.steam64Id === player.steam64Id
           )?.id;
 
           if (!playerId) return null;
 
+          const {
+            displayName,
+            kills,
+            assists,
+            deaths,
+            headshotPercentage,
+            teamLetter,
+          } = player;
+
           return {
-            ...player,
-            matchId: id,
+            id: `${match.id}_${playerId}`,
+            displayName,
+            kills,
+            assists,
+            deaths,
+            headshotPercentage,
+            matchId,
             playerId,
+            matchTeamId: matchTeamId(matchId, teamLetter),
           };
         })
         .filter(notNullish),
@@ -242,7 +318,7 @@ export class ParsingService {
     return incomingEvent;
   }
 
-  private async updatePlayerList<T extends { match: Match }>(
+  private async updatePlayerList<T extends { match: ParsedMatch }>(
     incomingEvent: T
   ): Promise<T & { updatedPlayers: dbPlayer[] }> {
     const {

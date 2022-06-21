@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+
 /**
  * Creates an array of elements split into groups the length of size.
  * https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore#_chunk
@@ -52,3 +54,28 @@ export function orderBy<T>(
     }
   };
 }
+
+/**
+ * Returns an interface stripped of all keys that don't resolve to U, defaulting
+ * to a non-strict comparison of T[key] extends U. Setting B to true performs
+ * a strict type comparison of T[key] extends U & U extends T[key]
+ *
+ * https://stackoverflow.com/a/60206860
+ */
+type KeysOfType<T, U, B = false> = {
+  [P in keyof T]: B extends true
+    ? T[P] extends U
+      ? U extends T[P]
+        ? P
+        : never
+      : never
+    : T[P] extends U
+    ? P
+    : never;
+}[keyof T];
+
+type PickByType<T, U, B = false> = Pick<T, KeysOfType<T, U, B>>;
+type GqlScalars = string | number | boolean | DateTime;
+export type GqlMapper<T> = T extends object
+  ? Partial<T> & PickByType<T, GqlScalars, true>
+  : T;

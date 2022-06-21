@@ -16,7 +16,6 @@ type Query {
   hello: String! @cacheControl(maxAge: 600)
   player(steam64Id: String!): Player @cacheControl(maxAge: 60)
   players: [Player!]! @cacheControl(maxAge: 60)
-  matches(steam64Id: String!): [Match!]! @cacheControl(maxAge: 60)
 }
 
 type Player @cacheControl(inheritMaxAge: true) {
@@ -29,15 +28,29 @@ type Player @cacheControl(inheritMaxAge: true) {
   steamAvatarUrlDefault: String
   steamAvatarUrlMedium: String
   steamAvatarUrlFull: String
+  matches: [PlayerMatch!]!
 }
 
-type Match @cacheControl(inheritMaxAge: true) {
+enum MatchType {
+  VALVE
+}
+
+type PlayerMatch @cacheControl(inheritMaxAge: true) {
   id: ID!
+  matchTimestamp: DateTime!
+  matchType: MatchType
   mapName: String!
-  players: [MatchPlayer!]!
+  teamScore: Int!
+  enemyTeamScore: Int!
+  playerScores: [PlayerScore!]!
+  # personal stats
+  kills: Int!
+  assists: Int!
+  deaths: Int!
+  headshotPercentage: String!
 }
 
-type MatchPlayer @cacheControl(inheritMaxAge: true) {
+type PlayerScore @cacheControl(inheritMaxAge: true) {
   id: ID!
   steam64Id: String!
   displayName: String!

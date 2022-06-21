@@ -18,20 +18,9 @@ model DemoFile {
   filepath    String   @unique
   fileCreated DateTime
   fileUpdated DateTime
-  parsed      Boolean  @default(false)
-  deleted     Boolean  @default(false)
-  Match       Match?
-}
-
-model Player {
-  id                    Int           @id @default(autoincrement())
-  steam64Id             String        @unique
-  displayName           String
-  steamProfileUrl       String?
-  steamAvatarUrlDefault String?
-  steamAvatarUrlMedium  String?
-  steamAvatarUrlFull    String?
-  matchPlayers          MatchPlayer[]
+  isParsed    Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
+  parsedMatch Match?
 }
 
 model Match {
@@ -42,19 +31,46 @@ model Match {
   serverName String
   clientName String
   players    MatchPlayer[]
+  MatchTeam  MatchTeam[]
+}
+
+model Player {
+  id                    Int           @id @default(autoincrement())
+  steam64Id             String        @unique
+  displayName           String
+  steamProfileUrl       String?
+  steamAvatarUrlDefault String?
+  steamAvatarUrlMedium  String?
+  steamAvatarUrlFull    String?
+  matches               MatchPlayer[]
 }
 
 model MatchPlayer {
-  Match              Match  @relation(fields: [matchId], references: [id])
+  id                 String    @id
+  Player             Player    @relation(fields: [playerId], references: [id])
+  playerId           Int
+  Match              Match     @relation(fields: [matchId], references: [id])
   matchId            String
-  steam64Id          String
-  displayName        String @default("player")
+  MatchTeam          MatchTeam @relation(fields: [matchTeamId], references: [id])
+  matchTeamId        String
+  displayName        String    @default("player")
   kills              Int
   assists            Int
   deaths             Int
   headshotPercentage String
-  Player             Player @relation(fields: [playerId], references: [id])
-  playerId           Int
 
-  @@id([matchId, steam64Id])
+  @@unique([matchId, playerId])
+}
+
+model MatchTeam {
+  id              String        @id
+  Match           Match         @relation(fields: [matchId], references: [id])
+  matchId         String
+  team            String
+  scoreFirstHalf  Int
+  scoreSecondHalf Int
+  scoreTotal      Int
+  players         MatchPlayer[]
+
+  @@unique([matchId, team])
 }

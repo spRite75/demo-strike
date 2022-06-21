@@ -43,15 +43,15 @@ export class DemoFileService {
                       data: { filepath, fileCreated, fileUpdated },
                     });
                   this.unparsedDemoFileSubject.next({ demoFile });
-                } else if (existingDemoFile.deleted) {
+                } else if (existingDemoFile.isDeleted) {
                   const demoFile =
                     await this.prismaService.client.demoFile.update({
                       where: { filepath },
                       data: {
                         fileCreated,
                         fileUpdated,
-                        deleted: false,
-                        parsed: false,
+                        isDeleted: false,
+                        isParsed: false,
                       },
                     });
                   this.unparsedDemoFileSubject.next({ demoFile });
@@ -63,7 +63,7 @@ export class DemoFileService {
                   const demoFile =
                     await this.prismaService.client.demoFile.update({
                       where: { filepath },
-                      data: { fileUpdated, parsed: false },
+                      data: { fileUpdated, isParsed: false },
                     });
                   this.unparsedDemoFileSubject.next({ demoFile });
                 }
@@ -73,7 +73,7 @@ export class DemoFileService {
                 if (existingDemoFile) {
                   await this.prismaService.client.demoFile.update({
                     where: { filepath },
-                    data: { deleted: true },
+                    data: { isDeleted: true },
                   });
                 }
               }

@@ -21,8 +21,12 @@ generates:
     plugins:
       - "typescript"
       - "typescript-resolvers"
+      - add:
+          content: "import { GqlMapper } from '../../utils';"
     config:
       contextType: ../context#Context
+      useIndexSignature: true
+      defaultMapper: GqlMapper<{T}>
       scalars:
         DateTime: luxon#DateTime
   packages/server/src/graphql/generated/graphql.schema.json:
