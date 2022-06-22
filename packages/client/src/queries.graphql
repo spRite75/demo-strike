@@ -13,3 +13,25 @@ query GetPlayerList {
     steamAvatarUrlMedium
   }
 }
+
+query GetPlayer($steam64Id: String!) {
+  player(steam64Id: $steam64Id) {
+    id
+    steam64Id
+    displayName
+    demoCount
+    steamProfileUrl
+    steamAvatarUrlFull
+    matches {
+      id
+      matchTimestamp
+      mapName
+      teamScore
+      enemyTeamScore
+      kills
+      assists
+      deaths
+      headshotPercentage
+    }
+  }
+}

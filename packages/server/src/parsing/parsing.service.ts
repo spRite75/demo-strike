@@ -15,9 +15,9 @@ import { createHash } from "crypto";
 import { DemoFileService } from "src/demo-file/demo-file.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { notNullish } from "src/utils";
-import { match } from "assert";
 import { SteamWebApiService } from "src/steam-web-api/steam-web-api.service";
 import {
+  extractPlayerScore,
   getPlayerFinalTeamLetter,
   getTeamLetter,
   TeamLetter,
@@ -44,7 +44,13 @@ interface ParsedMatchTeam {
   scoreTotal: number;
 }
 
-class ParsedMatchPlayer {
+export interface ParsedMatchPlayerScore {
+  kills: number;
+  assists: number;
+  deaths: number;
+  headshotPercentage: string;
+}
+export class ParsedMatchPlayer {
   constructor(
     public steam64Id: string,
     public displayName: string,
@@ -54,6 +60,14 @@ class ParsedMatchPlayer {
   assists = 0;
   deaths = 0;
   headshotPercentage = "--%";
+
+  updateScore(newScore: ParsedMatchPlayerScore) {
+    const { kills, assists, deaths, headshotPercentage } = newScore;
+    this.kills = kills;
+    this.assists = assists;
+    this.deaths = deaths;
+    this.headshotPercentage = headshotPercentage;
+  }
 }
 
 @Injectable()
@@ -142,25 +156,10 @@ export class ParsingService {
               });
               break;
             }
-            case "round_officially_ended": {
-              players.forEach((player) => {
-                const demoPlayer = demoFile.players.find(
-                  ({ steam64Id }) => player.steam64Id === steam64Id
-                );
-                if (!demoPlayer) return;
-
-                const playerHeadshotKills = demoPlayer.matchStats
-                  .map(({ headShotKills }) => headShotKills)
-                  .reduce((sum, curr) => sum + curr, 0);
-
-                player.kills = demoPlayer.kills;
-                player.assists = demoPlayer.assists;
-                player.deaths = demoPlayer.deaths;
-                player.headshotPercentage = `${(
-                  (playerHeadshotKills / player.kills) *
-                  100
-                ).toFixed(2)}%`;
-              });
+            case "player_disconnect": {
+              const player = players.get(event.player.steam64Id);
+              if (!player) return;
+              player.updateScore(extractPlayerScore(event.player));
             }
           }
         });
@@ -176,7 +175,11 @@ export class ParsingService {
             reject(event.error);
           }
 
-          this.logger.verbose(`parsed ${demoFileToParse.filepath}`);
+          demoFile.players.forEach((demoPlayer) => {
+            const player = players.get(demoPlayer.steam64Id);
+            if (!player) return;
+            player.updateScore(extractPlayerScore(demoPlayer));
+          });
 
           const {
             header: { clientName, serverName, mapName, playbackTicks },
@@ -207,6 +210,8 @@ export class ParsingService {
 
           const hash = createHash("sha256");
           compositeKey.forEach((value) => hash.write(value.trim()));
+
+          this.logger.verbose(`parsed ${demoFileToParse.filepath}`);
 
           resolve({
             ...incomingEvent,

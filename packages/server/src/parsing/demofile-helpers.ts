@@ -1,4 +1,5 @@
 import { BaseEntity, DemoFile, Player } from "demofile";
+import { ParsedMatchPlayer, ParsedMatchPlayerScore } from "./parsing.service";
 
 export type SiteLetter = "A" | "B" | "???";
 
@@ -112,4 +113,18 @@ export function getPlayerFinalTeamLetter(
     default:
       return "???";
   }
+}
+
+export function extractPlayerScore(demoPlayer: Player): ParsedMatchPlayerScore {
+  const playerHeadshotKills = demoPlayer.matchStats
+    .map(({ headShotKills }) => headShotKills)
+    .reduce((sum, curr) => sum + curr, 0);
+
+  const kills = demoPlayer.kills;
+  const assists = demoPlayer.assists;
+  const deaths = demoPlayer.deaths;
+  const headshotPercentage = `${
+    ((playerHeadshotKills / kills) * 100).toFixed(2) || "--"
+  }%`;
+  return { kills, assists, deaths, headshotPercentage };
 }

@@ -10,6 +10,51 @@ export const resolvers: Resolvers = {
     hello: async (_, __, { server }) => {
       return `Hello stranger! You're using ${server}`;
     },
+    player: async (_, params, { prisma }) => {
+      const dbPlayer = await prisma.client.player.findUnique({
+        where: { steam64Id: params.steam64Id },
+        include: {
+          _count: { select: { matches: true } },
+          matches: {
+            select: {
+              Match: {
+                include: { demoFile: { select: { fileUpdated: true } } },
+              },
+            },
+            orderBy: { Match: { demoFile: { fileCreated: "desc" } } },
+            take: 1,
+          },
+        },
+      });
+
+      if (!dbPlayer) return null;
+
+      const {
+        steam64Id,
+        displayName,
+        steamProfileUrl,
+        steamAvatarUrlDefault,
+        steamAvatarUrlMedium,
+        steamAvatarUrlFull,
+        matches,
+        _count: { matches: demoCount },
+      } = dbPlayer;
+      const lastPlayedTimestamp = DateTime.fromJSDate(
+        matches[0]?.Match.demoFile.fileUpdated ?? new Date(0)
+      );
+
+      return {
+        id: `${dbPlayer.id}`,
+        steam64Id,
+        displayName,
+        demoCount,
+        lastPlayedTimestamp,
+        steamProfileUrl,
+        steamAvatarUrlDefault,
+        steamAvatarUrlMedium,
+        steamAvatarUrlFull,
+      };
+    },
     players: async (_, __, { prisma }) => {
       const dbPlayers = await prisma.client.player.findMany({
         include: {
@@ -67,39 +112,41 @@ export const resolvers: Resolvers = {
         where: { playerId: parseInt(parentPlayer.id) },
       });
 
-      return dbMatchPlayers.map((matchPlayer): GqlMapper<PlayerMatch> => {
-        const playerTeam = matchPlayer.MatchTeam.team;
-        const teamScore = matchPlayer.Match.MatchTeam.find(
-          ({ team }) => team === playerTeam
-        )?.scoreTotal;
-        const enemyTeamScore = matchPlayer.Match.MatchTeam.find(
-          ({ team }) => team !== playerTeam
-        )?.scoreTotal;
+      return dbMatchPlayers
+        .map((matchPlayer): GqlMapper<PlayerMatch> => {
+          const playerTeam = matchPlayer.MatchTeam.team;
+          const teamScore = matchPlayer.Match.MatchTeam.find(
+            ({ team }) => team === playerTeam
+          )?.scoreTotal;
+          const enemyTeamScore = matchPlayer.Match.MatchTeam.find(
+            ({ team }) => team !== playerTeam
+          )?.scoreTotal;
 
-        if (
-          typeof teamScore === "undefined" ||
-          typeof enemyTeamScore === "undefined"
-        ) {
-          throw new Error(
-            `Could not identify team and enemy team scores for MatchPlayer ${matchPlayer.id}`
-          );
-        }
+          if (
+            typeof teamScore === "undefined" ||
+            typeof enemyTeamScore === "undefined"
+          ) {
+            throw new Error(
+              `Could not identify team and enemy team scores for MatchPlayer ${matchPlayer.id}`
+            );
+          }
 
-        return {
-          id: matchPlayer.id,
-          matchTimestamp: DateTime.fromJSDate(
-            matchPlayer.Match.demoFile.fileUpdated
-          ),
-          matchType: MatchType.Valve,
-          mapName: matchPlayer.Match.mapName,
-          teamScore,
-          enemyTeamScore,
-          kills: matchPlayer.kills,
-          assists: matchPlayer.assists,
-          deaths: matchPlayer.deaths,
-          headshotPercentage: matchPlayer.headshotPercentage,
-        };
-      });
+          return {
+            id: matchPlayer.id,
+            matchTimestamp: DateTime.fromJSDate(
+              matchPlayer.Match.demoFile.fileUpdated
+            ),
+            matchType: MatchType.Valve,
+            mapName: matchPlayer.Match.mapName,
+            teamScore,
+            enemyTeamScore,
+            kills: matchPlayer.kills,
+            assists: matchPlayer.assists,
+            deaths: matchPlayer.deaths,
+            headshotPercentage: matchPlayer.headshotPercentage,
+          };
+        })
+        .sort(orderBy("matchTimestamp", "desc"));
     },
   },
   PlayerMatch: {},
