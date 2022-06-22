@@ -14,14 +14,14 @@ export const resolvers: Resolvers = {
       const dbPlayer = await prisma.client.player.findUnique({
         where: { steam64Id: params.steam64Id },
         include: {
-          _count: { select: { matches: true } },
-          matches: {
+          _count: { select: { MatchPlayers: true } },
+          MatchPlayers: {
             select: {
               Match: {
-                include: { demoFile: { select: { fileUpdated: true } } },
+                include: { DemoFile: { select: { fileUpdated: true } } },
               },
             },
-            orderBy: { Match: { demoFile: { fileCreated: "desc" } } },
+            orderBy: { Match: { DemoFile: { fileCreated: "desc" } } },
             take: 1,
           },
         },
@@ -36,11 +36,11 @@ export const resolvers: Resolvers = {
         steamAvatarUrlDefault,
         steamAvatarUrlMedium,
         steamAvatarUrlFull,
-        matches,
-        _count: { matches: demoCount },
+        MatchPlayers,
+        _count: { MatchPlayers: demoCount },
       } = dbPlayer;
       const lastPlayedTimestamp = DateTime.fromJSDate(
-        matches[0]?.Match.demoFile.fileUpdated ?? new Date(0)
+        MatchPlayers[0]?.Match.DemoFile.fileUpdated ?? new Date(0)
       );
 
       return {
@@ -58,14 +58,14 @@ export const resolvers: Resolvers = {
     players: async (_, __, { prisma }) => {
       const dbPlayers = await prisma.client.player.findMany({
         include: {
-          _count: { select: { matches: true } },
-          matches: {
+          _count: { select: { MatchPlayers: true } },
+          MatchPlayers: {
             select: {
               Match: {
-                include: { demoFile: { select: { fileUpdated: true } } },
+                include: { DemoFile: { select: { fileUpdated: true } } },
               },
             },
-            orderBy: { Match: { demoFile: { fileCreated: "desc" } } },
+            orderBy: { Match: { DemoFile: { fileCreated: "desc" } } },
             take: 1,
           },
         },
@@ -80,11 +80,11 @@ export const resolvers: Resolvers = {
             steamAvatarUrlDefault,
             steamAvatarUrlMedium,
             steamAvatarUrlFull,
-            matches,
-            _count: { matches: demoCount },
+            MatchPlayers,
+            _count: { MatchPlayers: demoCount },
           } = dbPlayer;
           const lastPlayedTimestamp = DateTime.fromJSDate(
-            matches[0]?.Match.demoFile.fileUpdated ?? new Date(0)
+            MatchPlayers[0]?.Match.DemoFile.fileUpdated ?? new Date(0)
           );
 
           return {
@@ -106,7 +106,7 @@ export const resolvers: Resolvers = {
     matches: async (parentPlayer, __, { prisma }) => {
       const dbMatchPlayers = await prisma.client.matchPlayer.findMany({
         include: {
-          Match: { include: { demoFile: true, MatchTeam: true } },
+          Match: { include: { DemoFile: true, MatchTeams: true } },
           MatchTeam: true,
         },
         where: { playerId: parseInt(parentPlayer.id) },
@@ -115,10 +115,10 @@ export const resolvers: Resolvers = {
       return dbMatchPlayers
         .map((matchPlayer): GqlMapper<PlayerMatch> => {
           const playerTeam = matchPlayer.MatchTeam.team;
-          const teamScore = matchPlayer.Match.MatchTeam.find(
+          const teamScore = matchPlayer.Match.MatchTeams.find(
             ({ team }) => team === playerTeam
           )?.scoreTotal;
-          const enemyTeamScore = matchPlayer.Match.MatchTeam.find(
+          const enemyTeamScore = matchPlayer.Match.MatchTeams.find(
             ({ team }) => team !== playerTeam
           )?.scoreTotal;
 
@@ -134,7 +134,7 @@ export const resolvers: Resolvers = {
           return {
             id: matchPlayer.id,
             matchTimestamp: DateTime.fromJSDate(
-              matchPlayer.Match.demoFile.fileUpdated
+              matchPlayer.Match.DemoFile.fileUpdated
             ),
             matchType: MatchType.Valve,
             mapName: matchPlayer.Match.mapName,

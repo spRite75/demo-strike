@@ -267,7 +267,7 @@ export class ParsingService {
         clientName: match.clientName,
         serverName: match.serverName,
         mapName: match.mapName,
-        demoFile: { connect: { filepath } },
+        DemoFile: { connect: { filepath } },
       },
     });
     this.logger.verbose(`adding teams for Match ${match.id}`);
@@ -363,6 +363,12 @@ export class ParsingService {
 
     return { ...incomingEvent, updatedPlayers };
   }
+
+  // private async saveDemoInfo<T extends { info: ParsedDemoInfo }>(
+  //   incomingEvent: T
+  // ): Promise<T> {
+  //   const { info } = incomingEvent;
+  // }
 
   private async loadAndParseDemoInfoFile<T extends { demoFile: dbDemoFile }>(
     incomingEvent: T

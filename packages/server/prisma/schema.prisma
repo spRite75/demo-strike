@@ -14,24 +14,33 @@ model LocalUser {
 }
 
 model DemoFile {
-  id          Int      @id @default(autoincrement())
-  filepath    String   @unique
+  id          Int        @id @default(autoincrement())
+  filepath    String     @unique
   fileCreated DateTime
   fileUpdated DateTime
-  isParsed    Boolean  @default(false)
-  isDeleted   Boolean  @default(false)
-  parsedMatch Match?
+  isParsed    Boolean    @default(false)
+  isDeleted   Boolean    @default(false)
+  Match       Match?
+  MatchInfo   MatchInfo?
+}
+
+model MatchInfo {
+  id             String   @id
+  matchTimestamp DateTime
+  steam64Ids     String[]
+  DemoFile       DemoFile @relation(fields: [demoFileId], references: [id])
+  demoFileId     Int      @unique
 }
 
 model Match {
-  id         String        @id
-  demoFile   DemoFile      @relation(fields: [demoFileId], references: [id])
-  demoFileId Int           @unique
-  mapName    String
-  serverName String
-  clientName String
-  players    MatchPlayer[]
-  MatchTeam  MatchTeam[]
+  id           String        @id
+  DemoFile     DemoFile      @relation(fields: [demoFileId], references: [id])
+  demoFileId   Int           @unique
+  mapName      String
+  serverName   String
+  clientName   String
+  MatchPlayers MatchPlayer[]
+  MatchTeams   MatchTeam[]
 }
 
 model Player {
@@ -42,7 +51,7 @@ model Player {
   steamAvatarUrlDefault String?
   steamAvatarUrlMedium  String?
   steamAvatarUrlFull    String?
-  matches               MatchPlayer[]
+  MatchPlayers          MatchPlayer[]
 }
 
 model MatchPlayer {
@@ -70,7 +79,7 @@ model MatchTeam {
   scoreFirstHalf  Int
   scoreSecondHalf Int
   scoreTotal      Int
-  players         MatchPlayer[]
+  MatchPlayers    MatchPlayer[]
 
   @@unique([matchId, team])
 }
