@@ -131,6 +131,12 @@ export const resolvers: Resolvers = {
             );
           }
 
+          const headshotPercentage = `${
+            matchPlayer.headshotPercentage === null
+              ? "--"
+              : matchPlayer.headshotPercentage.toFixed(2)
+          }%`;
+
           return {
             id: matchPlayer.id,
             matchTimestamp: DateTime.fromJSDate(
@@ -143,7 +149,7 @@ export const resolvers: Resolvers = {
             kills: matchPlayer.kills,
             assists: matchPlayer.assists,
             deaths: matchPlayer.deaths,
-            headshotPercentage: matchPlayer.headshotPercentage,
+            headshotPercentage,
           };
         })
         .sort(orderBy("matchTimestamp", "desc"));

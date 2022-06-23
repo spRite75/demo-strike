@@ -30,10 +30,12 @@ model MatchInfo {
   steam64Ids     String[]
   DemoFile       DemoFile @relation(fields: [demoFileId], references: [id])
   demoFileId     Int      @unique
+  Match          Match[]
 }
 
 model Match {
   id           String        @id
+  MatchInfo    MatchInfo?    @relation(fields: [matchInfoId], references: [id])
   DemoFile     DemoFile      @relation(fields: [demoFileId], references: [id])
   demoFileId   Int           @unique
   mapName      String
@@ -41,6 +43,7 @@ model Match {
   clientName   String
   MatchPlayers MatchPlayer[]
   MatchTeams   MatchTeam[]
+  matchInfoId  String?
 }
 
 model Player {
@@ -66,7 +69,7 @@ model MatchPlayer {
   kills              Int
   assists            Int
   deaths             Int
-  headshotPercentage String
+  headshotPercentage Decimal?  @db.Decimal(5, 2)
 
   @@unique([matchId, playerId])
 }

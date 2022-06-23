@@ -123,8 +123,9 @@ export function extractPlayerScore(demoPlayer: Player): ParsedMatchPlayerScore {
   const kills = demoPlayer.kills;
   const assists = demoPlayer.assists;
   const deaths = demoPlayer.deaths;
-  const headshotPercentage = `${
-    ((playerHeadshotKills / kills) * 100).toFixed(2) || "--"
-  }%`;
+  let headshotPercentageValue = (playerHeadshotKills / kills) * 100;
+  const headshotPercentage = isNaN(headshotPercentageValue)
+    ? null
+    : headshotPercentageValue;
   return { kills, assists, deaths, headshotPercentage };
 }

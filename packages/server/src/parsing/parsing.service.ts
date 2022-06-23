@@ -1,11 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { concatMap, filter, Subject, merge } from "rxjs";
+import { filter, Subject, merge, concatMap } from "rxjs";
 import { readFile } from "fs/promises";
 import { DemoFile } from "demofile";
 import {
   DemoFile as dbDemoFile,
   MatchPlayer,
+  Match as dbMatch,
+  MatchInfo as dbMatchInfo,
   Player as dbPlayer,
+  Prisma,
 } from "@prisma/client";
 import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
@@ -48,7 +51,7 @@ export interface ParsedMatchPlayerScore {
   kills: number;
   assists: number;
   deaths: number;
-  headshotPercentage: string;
+  headshotPercentage: number | null;
 }
 export class ParsedMatchPlayer {
   constructor(
@@ -59,7 +62,7 @@ export class ParsedMatchPlayer {
   kills = 0;
   assists = 0;
   deaths = 0;
-  headshotPercentage = "--%";
+  headshotPercentage: null | number = null;
 
   updateScore(newScore: ParsedMatchPlayerScore) {
     const { kills, assists, deaths, headshotPercentage } = newScore;
@@ -94,6 +97,7 @@ export class ParsingService {
       .pipe(filter(notNullish))
       .pipe(concatMap(this.updatePlayerList.bind(this)))
       .pipe(concatMap(this.saveMatch.bind(this)))
+      .pipe(concatMap(this.connectRecords.bind(this)))
       .subscribe(({ demoFile: { filepath } }) =>
         this.logger.verbose(`finished processing ${filepath}`)
       );
@@ -104,7 +108,11 @@ export class ParsingService {
         filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem.info"))
       )
       .pipe(concatMap(this.loadAndParseDemoInfoFile.bind(this)))
-      .subscribe({ next: (data) => console.log(data) });
+      .pipe(concatMap(this.saveMatchInfo.bind(this)))
+      .pipe(concatMap(this.connectRecords.bind(this)))
+      .subscribe(({ demoFile: { filepath } }) =>
+        this.logger.verbose(`finished processing ${filepath}`)
+      );
   }
 
   async parseUnprocessed() {
@@ -157,7 +165,7 @@ export class ParsingService {
               break;
             }
             case "player_disconnect": {
-              const player = players.get(event.player.steam64Id);
+              const player = players.get(event.player?.steam64Id);
               if (!player) return;
               player.updateScore(extractPlayerScore(event.player));
             }
@@ -239,13 +247,13 @@ export class ParsingService {
     T extends {
       demoFile: dbDemoFile;
       match: ParsedMatch;
-      updatedPlayers: dbPlayer[];
+      updatedPlayerRecords: dbPlayer[];
     }
-  >(incomingEvent: T): Promise<T> {
+  >(incomingEvent: T): Promise<T & { matchRecord: dbMatch }> {
     const {
       demoFile: { filepath },
       match,
-      updatedPlayers,
+      updatedPlayerRecords: updatedPlayers,
     } = incomingEvent;
     const { teams, players } = match;
     this.logger.verbose(`deleting existing players from Match ${match.id}`);
@@ -261,7 +269,7 @@ export class ParsingService {
       where: { id: match.id },
     });
     this.logger.verbose(`saving Match ${match.id} from ${filepath}`);
-    const { id: matchId } = await this.prismaService.client.match.create({
+    const matchRecord = await this.prismaService.client.match.create({
       data: {
         id: match.id,
         clientName: match.clientName,
@@ -276,8 +284,8 @@ export class ParsingService {
     await this.prismaService.client.matchTeam.createMany({
       data: Array.from(teams).map(
         ([teamLetter, { scoreFirstHalf, scoreSecondHalf, scoreTotal }]) => ({
-          id: matchTeamId(matchId, teamLetter),
-          matchId,
+          id: matchTeamId(matchRecord.id, teamLetter),
+          matchId: matchRecord.id,
           team: teamLetter,
           scoreFirstHalf,
           scoreSecondHalf,
@@ -311,21 +319,24 @@ export class ParsingService {
             kills,
             assists,
             deaths,
-            headshotPercentage,
-            matchId,
+            headshotPercentage:
+              typeof headshotPercentage === "number"
+                ? new Prisma.Decimal(headshotPercentage)
+                : null,
+            matchId: matchRecord.id,
             playerId,
-            matchTeamId: matchTeamId(matchId, teamLetter),
+            matchTeamId: matchTeamId(matchRecord.id, teamLetter),
           };
         })
         .filter(notNullish),
     });
 
-    return incomingEvent;
+    return { ...incomingEvent, matchRecord };
   }
 
   private async updatePlayerList<T extends { match: ParsedMatch }>(
     incomingEvent: T
-  ): Promise<T & { updatedPlayers: dbPlayer[] }> {
+  ): Promise<T & { updatedPlayerRecords: dbPlayer[] }> {
     const {
       match: { players },
     } = incomingEvent;
@@ -361,14 +372,8 @@ export class ParsingService {
       })
     );
 
-    return { ...incomingEvent, updatedPlayers };
+    return { ...incomingEvent, updatedPlayerRecords: updatedPlayers };
   }
-
-  // private async saveDemoInfo<T extends { info: ParsedDemoInfo }>(
-  //   incomingEvent: T
-  // ): Promise<T> {
-  //   const { info } = incomingEvent;
-  // }
 
   private async loadAndParseDemoInfoFile<T extends { demoFile: dbDemoFile }>(
     incomingEvent: T
@@ -395,5 +400,77 @@ export class ParsingService {
         steam64Ids,
       },
     };
+  }
+
+  private async saveMatchInfo<
+    T extends { demoFile: dbDemoFile; info: ParsedDemoInfo }
+  >(incomingEvent: T): Promise<T & { infoRecord: dbMatchInfo }> {
+    const {
+      demoFile,
+      info: { officialMatchId, officialMatchTimestamp, steam64Ids },
+    } = incomingEvent;
+
+    let infoRecord = await this.prismaService.client.matchInfo.findUnique({
+      where: { id: officialMatchId },
+    });
+
+    if (!infoRecord) {
+      infoRecord = await this.prismaService.client.matchInfo.create({
+        data: {
+          id: officialMatchId,
+          matchTimestamp: officialMatchTimestamp,
+          steam64Ids,
+          DemoFile: { connect: { id: demoFile.id } },
+        },
+      });
+    }
+
+    return { ...incomingEvent, infoRecord };
+  }
+
+  private async connectRecords<
+    T extends {
+      demoFile: dbDemoFile;
+      infoRecord?: dbMatchInfo;
+      matchRecord?: dbMatch;
+    }
+  >(incomingEvent: T): Promise<T> {
+    const { demoFile, infoRecord, matchRecord } = incomingEvent;
+
+    if (infoRecord) {
+      const matchDemoFileRecord =
+        await this.prismaService.client.demoFile.findUnique({
+          where: { filepath: demoFile.filepath.replace(".info", "") },
+          include: { Match: true },
+        });
+
+      if (matchDemoFileRecord?.Match) {
+        try {
+          await this.prismaService.client.match.update({
+            where: { id: matchDemoFileRecord.Match.id },
+            data: { MatchInfo: { connect: { id: infoRecord.id } } },
+          });
+        } catch {}
+      }
+    } else if (matchRecord) {
+      const infoDemoFileRecord =
+        await this.prismaService.client.demoFile.findUnique({
+          where: { filepath: demoFile.filepath.concat(".info") },
+          include: { MatchInfo: true },
+        });
+
+      if (infoDemoFileRecord?.MatchInfo) {
+        try {
+          await this.prismaService.client.match.update({
+            where: { id: matchRecord.id },
+            data: {
+              MatchInfo: { connect: { id: infoDemoFileRecord.MatchInfo.id } },
+            },
+          });
+        } catch {}
+      }
+    }
+
+    return incomingEvent;
   }
 }
