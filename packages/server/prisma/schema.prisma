@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+model LocalUser {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+}
+
+model DemoFile {
+  id          Int        @id @default(autoincrement())
+  filepath    String     @unique
+  fileCreated DateTime
+  fileUpdated DateTime
+  isParsed    Boolean    @default(false)
+  isDeleted   Boolean    @default(false)
+  Match       Match?
+  MatchInfo   MatchInfo?
+}
+
+model MatchInfo {
+  id             String   @id
+  matchTimestamp DateTime
+  steam64Ids     String[]
+  DemoFile       DemoFile @relation(fields: [demoFileId], references: [id])
+  demoFileId     Int      @unique
+  Match          Match[]
+}
+
+model Match {
+  id           String        @id
+  MatchInfo    MatchInfo?    @relation(fields: [matchInfoId], references: [id])
+  DemoFile     DemoFile      @relation(fields: [demoFileId], references: [id])
+  demoFileId   Int           @unique
+  mapName      String
+  serverName   String
+  clientName   String
+  MatchPlayers MatchPlayer[]
+  MatchTeams   MatchTeam[]
+  matchInfoId  String?
+}
+
+model Player {
+  id                    Int           @id @default(autoincrement())
+  steam64Id             String        @unique
+  displayName           String
+  steamProfileUrl       String?
+  steamAvatarUrlDefault String?
+  steamAvatarUrlMedium  String?
+  steamAvatarUrlFull    String?
+  MatchPlayers          MatchPlayer[]
+}
+
+model MatchPlayer {
+  id                 String    @id
+  Player             Player    @relation(fields: [playerId], references: [id])
+  playerId           Int
+  Match              Match     @relation(fields: [matchId], references: [id])
+  matchId            String
+  MatchTeam          MatchTeam @relation(fields: [matchTeamId], references: [id])
+  matchTeamId        String
+  displayName        String    @default("player")
+  kills              Int
+  assists            Int
+  deaths             Int
+  headshotPercentage Decimal?  @db.Decimal(5, 2)
+
+  @@unique([matchId, playerId])
+}
+
+model MatchTeam {
+  id              String        @id
+  Match           Match         @relation(fields: [matchId], references: [id])
+  matchId         String
+  team            String
+  scoreFirstHalf  Int
+  scoreSecondHalf Int
+  scoreTotal      Int
+  MatchPlayers    MatchPlayer[]
+
+  @@unique([matchId, team])
+}

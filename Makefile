@@ -1,21 +1,24 @@
-.PHONY: install build watch generate start-local start-local-debug
-
+.PHONY: install install-ci generate test build start start-debug
 install:
 	npm i
 
-build:
-	npm run build
-
-watch:
-	npm run watch
+install-ci:
+	npm ci
 
 generate:
 	npm run generate
 
-start-local:
-	firebase emulators:start --import .emulatordata --export-on-exit
+test: generate
+	npm test
 
-start-local-debug:
-	firebase emulators:start --import .emulatordata --export-on-exit --inspect-functions
+build: generate
+	npm run build
 
+start: generate
+	npm run start
 
+start-debug: generate
+	npm run start:debug
+
+focus-dependencies:
+	npm ci --omit dev

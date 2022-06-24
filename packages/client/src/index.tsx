@@ -6,24 +6,21 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
 import { getApolloClient } from "./apollo";
-import { firebase, FirebaseContext } from "./firebase";
 import { BrowserRouter } from "react-router-dom";
 
 (async () => {
-  const apolloClient = getApolloClient(firebase);
+  const apolloClient = getApolloClient();
 
   const root = ReactDOM.createRoot(
     document.getElementById("root") as HTMLElement
   );
   root.render(
     <React.StrictMode>
-      <FirebaseContext.Provider value={firebase}>
-        <ApolloProvider client={apolloClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ApolloProvider>
-      </FirebaseContext.Provider>
+      <ApolloProvider client={apolloClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ApolloProvider>
     </React.StrictMode>
   );
 

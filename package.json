@@ -4,13 +4,14 @@
   "description": "A project to parse CSGO Demos and provide insights into history and stats.",
   "workspaces": [
     "packages/client",
-    "packages/functions"
+    "packages/server"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "generate": "graphql-codegen --config codegen.yml",
-    "build": "npm run generate && npm run build -ws",
-    "watch": "npm run generate && concurrently -k -c blue,bgBlue -n REACT,FUNCTIONS \"npm run watch -w packages/client\" \"npm run build:watch -w packages/functions\""
+    "generate": "graphql-codegen --config codegen.yml && npm run prisma:generate -w server",
+    "test": "npm run test -ws",
+    "build": "npm run build -ws",
+    "start": "concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:dev -w packages/server\"",
+    "start:debug": "concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:debug -w packages/server\""
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   },
   "homepage": "https://github.com/spRite75/demo-strike#readme",
   "devDependencies": {
+    "@graphql-codegen/add": "^3.1.1",
     "@graphql-codegen/cli": "2.6.2",
     "@graphql-codegen/fragment-matcher": "3.2.1",
     "@graphql-codegen/introspection": "2.1.1",
