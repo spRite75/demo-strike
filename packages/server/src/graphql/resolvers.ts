@@ -2,7 +2,7 @@ import { MatchType, Player, PlayerMatch, Resolvers } from "./generated/graphql";
 import { dateTimeScalar } from "./scalars";
 
 import { DateTime } from "luxon";
-import { GqlMapper, orderBy } from "src/utils";
+import { GqlMapper, orderBy } from "../utils";
 
 export const resolvers: Resolvers = {
   DateTime: dateTimeScalar,
@@ -18,10 +18,18 @@ export const resolvers: Resolvers = {
           MatchPlayers: {
             select: {
               Match: {
-                include: { DemoFile: { select: { fileUpdated: true } } },
+                include: {
+                  DemoFile: { select: { fileUpdated: true } },
+                },
               },
             },
-            orderBy: { Match: { DemoFile: { fileCreated: "desc" } } },
+            orderBy: [
+              {
+                Match: {
+                  DemoFile: { fileCreated: "desc" },
+                },
+              },
+            ],
             take: 1,
           },
         },
@@ -106,7 +114,9 @@ export const resolvers: Resolvers = {
     matches: async (parentPlayer, __, { prisma }) => {
       const dbMatchPlayers = await prisma.client.matchPlayer.findMany({
         include: {
-          Match: { include: { DemoFile: true, MatchTeams: true } },
+          Match: {
+            include: { DemoFile: true, MatchTeams: true, MatchInfo: true },
+          },
           MatchTeam: true,
         },
         where: { playerId: parseInt(parentPlayer.id) },
@@ -140,7 +150,9 @@ export const resolvers: Resolvers = {
           return {
             id: matchPlayer.id,
             matchTimestamp: DateTime.fromJSDate(
-              matchPlayer.Match.DemoFile.fileUpdated
+              matchPlayer.Match.MatchInfo
+                ? matchPlayer.Match.MatchInfo.matchTimestamp
+                : matchPlayer.Match.DemoFile.fileUpdated
             ),
             matchType: MatchType.Valve,
             mapName: matchPlayer.Match.mapName,

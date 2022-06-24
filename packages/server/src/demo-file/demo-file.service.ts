@@ -1,8 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { DemoFile } from "@prisma/client";
 import { Subject, concatMap, tap } from "rxjs";
-import { FilesystemService } from "src/filesystem/filesystem.service";
-import { PrismaService } from "src/prisma/prisma.service";
+import { FilesystemService } from "../filesystem/filesystem.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class DemoFileService {

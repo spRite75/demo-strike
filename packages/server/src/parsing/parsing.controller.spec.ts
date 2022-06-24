@@ -1,18 +1,21 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ParsingController } from './parsing.controller';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ParsingController } from "./parsing.controller";
+import { ParsingService } from "./parsing.service";
 
-describe('ParsingController', () => {
+describe("ParsingController", () => {
   let controller: ParsingController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ParsingController],
-    }).compile();
+    })
+      .useMocker((token) => ({}))
+      .compile();
 
     controller = module.get<ParsingController>(ParsingController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

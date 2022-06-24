@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import { typeDefs } from "./typeDefs";
 import { resolvers } from "./resolvers";
 import { createContext } from "./context";
-import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Controller("graphql")
 export class GraphqlController {

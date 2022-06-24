@@ -1,6 +1,6 @@
 import { ContextFunction } from "apollo-server-core";
 import { Request as ExpressRequest } from "express";
-import { PrismaService } from "src/prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 export interface Context {
   server: string;

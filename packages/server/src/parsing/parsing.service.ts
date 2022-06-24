@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { filter, Subject, merge, concatMap } from "rxjs";
+import { filter, Subject, merge } from "rxjs";
 import { readFile } from "fs/promises";
 import { DemoFile } from "demofile";
 import {
@@ -15,10 +15,9 @@ import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_g
 import { DateTime } from "luxon";
 import { createHash } from "crypto";
 
-import { DemoFileService } from "src/demo-file/demo-file.service";
-import { PrismaService } from "src/prisma/prisma.service";
-import { notNullish } from "src/utils";
-import { SteamWebApiService } from "src/steam-web-api/steam-web-api.service";
+import { DemoFileService } from "../demo-file/demo-file.service";
+import { PrismaService } from "../prisma/prisma.service";
+import { SteamWebApiService } from "../steam-web-api/steam-web-api.service";
 import {
   extractPlayerScore,
   getPlayerFinalTeamLetter,
@@ -93,26 +92,36 @@ export class ParsingService {
     // Parse .dem files
     this.unparsedDemoFileObservable
       .pipe(filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem")))
-      .pipe(concatMap(this.loadAndParseDemoFile.bind(this)))
-      .pipe(filter(notNullish))
-      .pipe(concatMap(this.updatePlayerList.bind(this)))
-      .pipe(concatMap(this.saveMatch.bind(this)))
-      .pipe(concatMap(this.connectRecords.bind(this)))
-      .subscribe(({ demoFile: { filepath } }) =>
-        this.logger.verbose(`finished processing ${filepath}`)
-      );
+      .subscribe({
+        next: async ({ demoFile }) => {
+          const match = await this.loadAndParseDemoFile(demoFile);
+          if (!match) {
+            return;
+          }
+          const updatedPlayerRecords = await this.updatePlayerList(match);
+          const matchRecord = await this.saveMatch({
+            demoFile,
+            match,
+            updatedPlayerRecords,
+          });
+          await this.connectMatchToInfo({ demoFile, matchRecord });
+          this.logger.verbose(`finished processing ${demoFile.filepath}`);
+        },
+      });
 
     // Parse .dem.info files
     this.unparsedDemoFileObservable
       .pipe(
         filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem.info"))
       )
-      .pipe(concatMap(this.loadAndParseDemoInfoFile.bind(this)))
-      .pipe(concatMap(this.saveMatchInfo.bind(this)))
-      .pipe(concatMap(this.connectRecords.bind(this)))
-      .subscribe(({ demoFile: { filepath } }) =>
-        this.logger.verbose(`finished processing ${filepath}`)
-      );
+      .subscribe({
+        next: async ({ demoFile }) => {
+          const info = await this.loadAndParseDemoInfoFile(demoFile);
+          const infoRecord = await this.saveMatchInfo({ demoFile, info });
+          await this.connectMatchToInfo({ demoFile, infoRecord });
+          this.logger.verbose(`finished processing ${demoFile.filepath}`);
+        },
+      });
   }
 
   async parseUnprocessed() {
@@ -130,15 +139,13 @@ export class ParsingService {
     };
   }
 
-  private async loadAndParseDemoFile<T extends { demoFile: dbDemoFile }>(
-    incomingEvent: T
-  ): Promise<(T & { match: ParsedMatch }) | null> {
+  private async loadAndParseDemoFile(
+    demoFile: dbDemoFile
+  ): Promise<ParsedMatch | null> {
     return new Promise(async (resolve, reject) => {
-      const demoFileToParse = incomingEvent.demoFile;
+      const demoFileToParse = demoFile;
       try {
-        this.logger.verbose(`loading ${demoFileToParse.filepath}`);
         const buffer = await readFile(demoFileToParse.filepath);
-        this.logger.verbose(`loaded ${demoFileToParse.filepath}`);
         const demoFile = new DemoFile();
 
         const teams = new Map<TeamLetter, ParsedMatchTeam>();
@@ -219,22 +226,16 @@ export class ParsingService {
           const hash = createHash("sha256");
           compositeKey.forEach((value) => hash.write(value.trim()));
 
-          this.logger.verbose(`parsed ${demoFileToParse.filepath}`);
-
           resolve({
-            ...incomingEvent,
-            match: {
-              id: hash.digest("hex"),
-              clientName,
-              serverName,
-              mapName,
-              teams,
-              players,
-            },
+            id: hash.digest("hex"),
+            clientName,
+            serverName,
+            mapName,
+            teams,
+            players,
           });
         });
 
-        this.logger.verbose(`parsing ${demoFileToParse.filepath}`);
         demoFile.parse(buffer);
       } catch (e) {
         this.logger.error(e);
@@ -243,78 +244,85 @@ export class ParsingService {
     });
   }
 
-  private async saveMatch<
-    T extends {
-      demoFile: dbDemoFile;
-      match: ParsedMatch;
-      updatedPlayerRecords: dbPlayer[];
-    }
-  >(incomingEvent: T): Promise<T & { matchRecord: dbMatch }> {
+  private async saveMatch(props: {
+    demoFile: dbDemoFile;
+    match: ParsedMatch;
+    updatedPlayerRecords: dbPlayer[];
+  }): Promise<dbMatch> {
     const {
-      demoFile: { filepath },
+      demoFile,
       match,
-      updatedPlayerRecords: updatedPlayers,
-    } = incomingEvent;
-    const { teams, players } = match;
-    this.logger.verbose(`deleting existing players from Match ${match.id}`);
-    await this.prismaService.client.matchPlayer.deleteMany({
-      where: { matchId: match.id },
-    });
-    this.logger.verbose(`deleting existing teams from Match ${match.id}`);
-    await this.prismaService.client.matchTeam.deleteMany({
-      where: { matchId: match.id },
-    });
-    this.logger.verbose(`deleting existing Match ${match.id}`);
-    await this.prismaService.client.match.deleteMany({
+      match: { teams, players },
+      updatedPlayerRecords,
+    } = props;
+    const matchRecord = await this.prismaService.client.match.upsert({
       where: { id: match.id },
-    });
-    this.logger.verbose(`saving Match ${match.id} from ${filepath}`);
-    const matchRecord = await this.prismaService.client.match.create({
-      data: {
+      create: {
         id: match.id,
         clientName: match.clientName,
         serverName: match.serverName,
         mapName: match.mapName,
-        DemoFile: { connect: { filepath } },
+        DemoFile: { connect: { filepath: demoFile.filepath } },
+      },
+      update: {
+        clientName: match.clientName,
+        serverName: match.serverName,
+        mapName: match.mapName,
+        DemoFile: { connect: { filepath: demoFile.filepath } },
       },
     });
-    this.logger.verbose(`adding teams for Match ${match.id}`);
+
     const matchTeamId = (matchId: string, teamLetter: TeamLetter) =>
       `${matchId}_${teamLetter}`;
-    await this.prismaService.client.matchTeam.createMany({
-      data: Array.from(teams).map(
-        ([teamLetter, { scoreFirstHalf, scoreSecondHalf, scoreTotal }]) => ({
-          id: matchTeamId(matchRecord.id, teamLetter),
-          matchId: matchRecord.id,
-          team: teamLetter,
-          scoreFirstHalf,
-          scoreSecondHalf,
-          scoreTotal,
-        })
-      ),
-    });
 
-    this.logger.verbose(`adding players for Match ${match.id}`);
-    await this.prismaService.client.matchPlayer.createMany({
-      data: Array.from(players.values())
-        .map((player): MatchPlayer | null => {
-          const playerId = updatedPlayers.find(
-            (p) => p.steam64Id === player.steam64Id
-          )?.id;
+    await Promise.all(
+      Array.from(teams).map(
+        ([teamLetter, { scoreFirstHalf, scoreSecondHalf, scoreTotal }]) =>
+          this.prismaService.client.matchTeam.upsert({
+            where: { id: matchTeamId(matchRecord.id, teamLetter) },
+            create: {
+              id: matchTeamId(matchRecord.id, teamLetter),
+              matchId: matchRecord.id,
+              team: teamLetter,
+              scoreFirstHalf,
+              scoreSecondHalf,
+              scoreTotal,
+            },
+            update: {
+              id: matchTeamId(matchRecord.id, teamLetter),
+              matchId: matchRecord.id,
+              team: teamLetter,
+              scoreFirstHalf,
+              scoreSecondHalf,
+              scoreTotal,
+            },
+          })
+      )
+    );
 
-          if (!playerId) return null;
+    await Promise.all(
+      Array.from(players.values()).map(async (player) => {
+        const playerId = updatedPlayerRecords.find(
+          (p) => p.steam64Id === player.steam64Id
+        )?.id;
 
-          const {
-            displayName,
-            kills,
-            assists,
-            deaths,
-            headshotPercentage,
-            teamLetter,
-          } = player;
+        if (!playerId) return;
 
-          return {
-            id: `${match.id}_${playerId}`,
+        const {
+          displayName,
+          kills,
+          assists,
+          deaths,
+          headshotPercentage,
+          teamLetter,
+        } = player;
+
+        const id = `${match.id}_${playerId}`;
+
+        await this.prismaService.client.matchPlayer.upsert({
+          where: { id },
+          create: {
+            id,
             displayName,
             kills,
             assists,
@@ -326,20 +334,29 @@ export class ParsingService {
             matchId: matchRecord.id,
             playerId,
             matchTeamId: matchTeamId(matchRecord.id, teamLetter),
-          };
-        })
-        .filter(notNullish),
-    });
+          },
+          update: {
+            displayName,
+            kills,
+            assists,
+            deaths,
+            headshotPercentage:
+              typeof headshotPercentage === "number"
+                ? new Prisma.Decimal(headshotPercentage)
+                : null,
+            matchId: matchRecord.id,
+            playerId,
+            matchTeamId: matchTeamId(matchRecord.id, teamLetter),
+          },
+        });
+      })
+    );
 
-    return { ...incomingEvent, matchRecord };
+    return matchRecord;
   }
 
-  private async updatePlayerList<T extends { match: ParsedMatch }>(
-    incomingEvent: T
-  ): Promise<T & { updatedPlayerRecords: dbPlayer[] }> {
-    const {
-      match: { players },
-    } = incomingEvent;
+  private async updatePlayerList(match: ParsedMatch): Promise<dbPlayer[]> {
+    const { players } = match;
     const playersArray = Array.from(players.values());
 
     const playerSummaries = await this.steamWebApiService.getPlayerSummaries(
@@ -372,17 +389,13 @@ export class ParsingService {
       })
     );
 
-    return { ...incomingEvent, updatedPlayerRecords: updatedPlayers };
+    return updatedPlayers;
   }
 
-  private async loadAndParseDemoInfoFile<T extends { demoFile: dbDemoFile }>(
-    incomingEvent: T
-  ): Promise<
-    T & {
-      info: ParsedDemoInfo;
-    }
-  > {
-    const buffer = await readFile(incomingEvent.demoFile.filepath);
+  private async loadAndParseDemoInfoFile(
+    demoFile: dbDemoFile
+  ): Promise<ParsedDemoInfo> {
+    const buffer = await readFile(demoFile.filepath);
     const demoInfoMessage = CDataGCCStrike15V2MatchInfo.decode(buffer);
 
     const { matchid, matchtime, roundstatsall } = demoInfoMessage;
@@ -393,22 +406,20 @@ export class ParsingService {
       ) ?? [];
 
     return {
-      ...incomingEvent,
-      info: {
-        officialMatchId: matchid.toString(),
-        officialMatchTimestamp: DateTime.fromSeconds(matchtime).toISO(),
-        steam64Ids,
-      },
+      officialMatchId: matchid.toString(),
+      officialMatchTimestamp: DateTime.fromSeconds(matchtime).toISO(),
+      steam64Ids,
     };
   }
 
-  private async saveMatchInfo<
-    T extends { demoFile: dbDemoFile; info: ParsedDemoInfo }
-  >(incomingEvent: T): Promise<T & { infoRecord: dbMatchInfo }> {
+  private async saveMatchInfo(params: {
+    demoFile: dbDemoFile;
+    info: ParsedDemoInfo;
+  }): Promise<dbMatchInfo> {
     const {
       demoFile,
       info: { officialMatchId, officialMatchTimestamp, steam64Ids },
-    } = incomingEvent;
+    } = params;
 
     let infoRecord = await this.prismaService.client.matchInfo.findUnique({
       where: { id: officialMatchId },
@@ -425,17 +436,15 @@ export class ParsingService {
       });
     }
 
-    return { ...incomingEvent, infoRecord };
+    return infoRecord;
   }
 
-  private async connectRecords<
-    T extends {
-      demoFile: dbDemoFile;
-      infoRecord?: dbMatchInfo;
-      matchRecord?: dbMatch;
-    }
-  >(incomingEvent: T): Promise<T> {
-    const { demoFile, infoRecord, matchRecord } = incomingEvent;
+  private async connectMatchToInfo(params: {
+    demoFile: dbDemoFile;
+    infoRecord?: dbMatchInfo;
+    matchRecord?: dbMatch;
+  }): Promise<void> {
+    const { demoFile, infoRecord, matchRecord } = params;
 
     if (infoRecord) {
       const matchDemoFileRecord =
@@ -470,7 +479,5 @@ export class ParsingService {
         } catch {}
       }
     }
-
-    return incomingEvent;
   }
 }

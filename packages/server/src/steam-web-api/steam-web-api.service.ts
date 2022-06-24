@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import fetch from "node-fetch";
-import { chunk } from "src/utils";
+import { chunk } from "../utils";
 
 interface IGetPlayerSummariesResponse {
   response: {
