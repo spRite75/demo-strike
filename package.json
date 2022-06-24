@@ -7,11 +7,11 @@
     "packages/server"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "generate": "graphql-codegen --config codegen.yml",
-    "build": "npm run generate && npm run build -ws",
-    "start": "npm run generate && concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:dev -w packages/server\"",
-    "start:debug": "npm run generate && concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:debug -w packages/server\""
+    "generate": "graphql-codegen --config codegen.yml && npm run prisma:generate -w server",
+    "test": "npm run test -ws",
+    "build": "npm run build -ws",
+    "start": "concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:dev -w packages/server\"",
+    "start:debug": "concurrently -k -c blue,bgBlue -n REACT,SERVER \"npm run watch -w packages/client\" \"npm run start:debug -w packages/server\""
   },
   "repository": {
     "type": "git",

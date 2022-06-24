@@ -24,7 +24,6 @@
     "react-daisyui": "^2.0.1",
     "react-dom": "^18.1.0",
     "react-dropzone": "^14.2.0",
-    "react-firebase-hooks": "^5.0.3",
     "react-hook-form": "^7.31.3",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
@@ -37,8 +36,7 @@
     "build": "CI=false react-scripts build",
     "watch": "cra-build-watch",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "graphql-codegen": "graphql-codegen --config graphql-codegen.yml"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

@@ -1,15 +1,21 @@
-.PHONY: install build generate start
+.PHONY: install install-ci generate test build start start-debug
 install:
 	npm i
+
+install-ci:
+	npm ci
 
 generate:
 	npm run generate
 
-build:
+test: generate
+	npm test
+
+build: generate
 	npm run build
 
-start:
+start: generate
 	npm run start
 
-start-debug:
+start-debug: generate
 	npm run start:debug
