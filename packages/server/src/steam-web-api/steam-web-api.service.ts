@@ -38,30 +38,32 @@ export class SteamWebApiService {
     const playerSummaries = new Map<string, PlayerSummary>();
     const steam64IdChunks = chunk(steam64Ids, 75);
 
-    for (const steam64Ids of steam64IdChunks) {
-      const response = await fetch(
-        `${apiUrl}?key=${this.apiKey}&steamids=${steam64Ids.join(",")}`
-      );
-      if (response.ok) {
-        const json = (await response.json()) as IGetPlayerSummariesResponse;
-        json.response.players.forEach((player) =>
-          playerSummaries.set(player.steamid, {
-            displayName: player.personaname,
-            profileUrl: player.profileurl,
-            avatar: player.avatar,
-            avatarMedium: player.avatarmedium,
-            avatarFull: player.avatarfull,
-          })
+    try {
+      for (const steam64Ids of steam64IdChunks) {
+        const response = await fetch(
+          `${apiUrl}?key=${this.apiKey}&steamids=${steam64Ids.join(",")}`
         );
-      } else {
-        this.logger.error(
-          `ISteamUser.GetPlayerSummaries call failed (status: ${response.status} ${response.statusText})`,
-          await response.json()
-        );
+        if (response.ok) {
+          const json = (await response.json()) as IGetPlayerSummariesResponse;
+          json.response.players.forEach((player) =>
+            playerSummaries.set(player.steamid, {
+              displayName: player.personaname,
+              profileUrl: player.profileurl,
+              avatar: player.avatar,
+              avatarMedium: player.avatarmedium,
+              avatarFull: player.avatarfull,
+            })
+          );
+        } else {
+          this.logger.error(
+            `ISteamUser.GetPlayerSummaries call failed (status: ${response.status} ${response.statusText})`,
+            await response.json()
+          );
+        }
       }
-    }
+    } catch (e) {}
 
-    this.logger.verbose(`got ${steam64Ids.length} player summaries`);
+    this.logger.verbose(`got ${playerSummaries.size} player summaries`);
     return playerSummaries;
   }
 }

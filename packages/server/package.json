@@ -12,13 +12,16 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "npm run prisma:deploy && node dist/main",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:reset": "prisma migrate reset",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma db push"
   },
   "dependencies": {
     "@graphql-tools/graphql-file-loader": "^7.3.15",
