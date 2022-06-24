@@ -19,3 +19,6 @@ start: generate
 
 start-debug: generate
 	npm run start:debug
+
+focus-dependencies:
+	npm ci --omit dev
