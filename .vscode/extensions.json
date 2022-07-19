@@ -1,8 +1,9 @@
 {
-    "recommendations": [
-        "toba.vsfire",
-        "apollographql.vscode-apollo",
-        "capaj.graphql-codegen-vscode",
-        "esbenp.prettier-vscode"
-    ]
+  "recommendations": [
+    "toba.vsfire",
+    "apollographql.vscode-apollo",
+    "capaj.graphql-codegen-vscode",
+    "esbenp.prettier-vscode",
+    "Prisma.prisma"
+  ]
 }
