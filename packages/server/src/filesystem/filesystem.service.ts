@@ -19,9 +19,6 @@ export class FilesystemService {
   }>();
   readonly demoFileObservable = this.demoFileSubject
     .asObservable()
-    .pipe(
-      tap(({ event, filepath }) => this.logger.verbose(`${event} ${filepath}`))
-    )
     .pipe(bufferTime(1000))
     .pipe(filter((i) => i.length > 0));
 

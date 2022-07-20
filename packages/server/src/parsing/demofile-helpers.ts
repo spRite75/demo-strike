@@ -1,3 +1,4 @@
+import { DemoTeamSide } from "@prisma/client";
 import { BaseEntity, DemoFile, Player } from "demofile";
 import { ParsedMatchPlayer, ParsedMatchPlayerScore } from "./parsing.service";
 
@@ -67,14 +68,14 @@ export function getRoundEndReason(
 }
 
 export type TeamLetter = "T" | "CT" | "???";
-export function getTeamLetter(teamNumber?: number): TeamLetter {
+export function getDemoTeamSide(teamNumber?: number): DemoTeamSide {
   switch (teamNumber) {
     case 2:
-      return "T";
+      return DemoTeamSide.TERRORISTS;
     case 3:
-      return "CT";
+      return DemoTeamSide.COUNTER_TERRORISTS;
     default:
-      return "???";
+      return DemoTeamSide.UNKNOWN;
   }
 }
 
@@ -95,7 +96,7 @@ export function getPlayerFinalTeamLetter(
   demoFile: DemoFile,
   player: Player
 ): TeamLetter {
-  const playerCurrentTeamLetter = getTeamLetter(player.team?.teamNumber);
+  const playerCurrentTeamLetter = getDemoTeamSide(player.team?.teamNumber);
 
   // TODO: if we want to handle faceit / demos with overtime, this needs testing + more brain
   switch (demoFile.gameRules.phase) {

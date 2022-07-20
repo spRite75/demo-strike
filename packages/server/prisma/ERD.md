@@ -10,14 +10,15 @@ UNKNOWN UNKNOWN
 
 
         DemoKind {
-            OFFICIAL_MATCHMAKING OFFICIAL_MATCHMAKING
-UNKNOWN UNKNOWN
+            UNKNOWN UNKNOWN
+OFFICIAL_MATCHMAKING OFFICIAL_MATCHMAKING
         }
     
 
 
         DemoTeamSide {
-            TERRORISTS TERRORISTS
+            UNKNOWN UNKNOWN
+TERRORISTS TERRORISTS
 COUNTER_TERRORISTS COUNTER_TERRORISTS
         }
     
@@ -40,7 +41,7 @@ COUNTER_TERRORISTS COUNTER_TERRORISTS
   
 
   Demo {
-    Int id PK 
+    String id PK 
     DemoKind kind  
     String mapName  
     String serverName  

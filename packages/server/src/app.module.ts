@@ -19,6 +19,7 @@ import { GraphqlController } from "./graphql/graphql.controller";
 import { SteamWebApiService } from "./steam-web-api/steam-web-api.service";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+import { DiskFileService } from './disk-file/disk-file.service';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { join } from "path";
     ParsingService,
     DemoFileService,
     SteamWebApiService,
+    DiskFileService,
   ],
 })
 export class AppModule {}

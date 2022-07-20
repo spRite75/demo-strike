@@ -38,12 +38,12 @@ model DiskFile {
 }
 
 enum DemoKind {
-  OFFICIAL_MATCHMAKING
   UNKNOWN
+  OFFICIAL_MATCHMAKING
 }
 
 model Demo {
-  id         Int      @id
+  id         String   @id
   kind       DemoKind @default(UNKNOWN)
   mapName    String
   serverName String
@@ -57,6 +57,7 @@ model Demo {
 }
 
 enum DemoTeamSide {
+  UNKNOWN
   TERRORISTS
   COUNTER_TERRORISTS
 }
@@ -68,7 +69,7 @@ model DemoTeam {
   scoreTotal      Int
 
   Demo           Demo             @relation(fields: [demoId], references: [id])
-  demoId         Int
+  demoId         String
   DemoTeamPlayer DemoTeamPlayer[]
 
   @@id([side, demoId])
@@ -84,7 +85,7 @@ model DemoTeamPlayer {
 
   DemoTeam       DemoTeam     @relation(fields: [demoTeamSide, demoTeamDemoId], references: [side, demoId])
   demoTeamSide   DemoTeamSide
-  demoTeamDemoId Int
+  demoTeamDemoId String
   Player         Player?      @relation(fields: [steam64Id], references: [steam64Id])
 
   @@id([steam64Id, demoTeamSide, demoTeamDemoId])

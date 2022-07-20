@@ -1,29 +1,32 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { filter, Subject, merge } from "rxjs";
+import { Subject } from "rxjs";
 import { readFile } from "fs/promises";
 import { DemoFile } from "demofile";
 import {
-  DemoFile as dbDemoFile,
-  MatchPlayer,
-  Match as dbMatch,
-  MatchInfo as dbMatchInfo,
-  Player as dbPlayer,
   Prisma,
+  DiskFileKind,
+  DiskFile,
+  DemoInfo,
+  Demo,
+  DemoTeamSide,
+  DemoTeam,
+  DemoTeamPlayer,
 } from "@prisma/client";
 import SteamID from "steamid";
 import { CDataGCCStrike15V2MatchInfo } from "demofile/dist/protobufs/cstrike15_gcmessages";
 import { DateTime } from "luxon";
 import { createHash } from "crypto";
 
-import { DemoFileService } from "../demo-file/demo-file.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { SteamWebApiService } from "../steam-web-api/steam-web-api.service";
 import {
   extractPlayerScore,
   getPlayerFinalTeamLetter,
-  getTeamLetter,
+  getDemoTeamSide,
   TeamLetter,
 } from "./demofile-helpers";
+import { DiskFileService } from "../disk-file/disk-file.service";
+import { notNullish } from "../utils";
 
 interface ParsedDemoInfo {
   officialMatchId: string;
@@ -36,7 +39,7 @@ interface ParsedMatch {
   mapName: string;
   serverName: string;
   clientName: string;
-  teams: Map<TeamLetter, ParsedMatchTeam>;
+  teams: Map<DemoTeamSide, ParsedMatchTeam>;
   players: Map<string, ParsedMatchPlayer>;
 }
 
@@ -56,7 +59,7 @@ export class ParsedMatchPlayer {
   constructor(
     public steam64Id: string,
     public displayName: string,
-    public teamLetter: TeamLetter
+    public team: DemoTeamSide
   ) {}
   kills = 0;
   assists = 0;
@@ -79,49 +82,177 @@ export class ParsingService {
   private readonly manualTriggeredDemoFileSubject = new Subject<{
     demoFile: dbDemoFile;
   }>();
-  private readonly unparsedDemoFileObservable = merge(
-    this.demoFileService.unparsedDemoFileObservable,
-    this.manualTriggeredDemoFileSubject
-  );
 
   constructor(
-    private demoFileService: DemoFileService,
+    private diskFileService: DiskFileService,
     private steamWebApiService: SteamWebApiService,
     private prismaService: PrismaService
   ) {
-    // Parse .dem files
-    this.unparsedDemoFileObservable
-      .pipe(filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem")))
-      .subscribe({
-        next: async ({ demoFile }) => {
-          const match = await this.loadAndParseDemoFile(demoFile);
-          if (!match) {
-            return;
-          }
-          const updatedPlayerRecords = await this.updatePlayerList(match);
-          const matchRecord = await this.saveMatch({
-            demoFile,
-            match,
-            updatedPlayerRecords,
-          });
-          await this.connectMatchToInfo({ demoFile, matchRecord });
-          this.logger.verbose(`finished processing ${demoFile.filepath}`);
+    diskFileService.unprocessedDiskFiles.subscribe({
+      next: async (diskFile) => {
+        if (diskFile.kind === DiskFileKind.DEMO_INFO) {
+          await this.loadAndParseDemoInfo(diskFile).then((parsedDemoInfo) =>
+            this.saveDemoInfo(parsedDemoInfo, diskFile)
+          );
+        } else if (diskFile.kind === DiskFileKind.DEMO) {
+          const parsedDemo = await this.loadAndParseDemo(diskFile);
+          const demo = await this.saveDemo(parsedDemo, diskFile);
+          const demoTeams = await this.saveDemoTeams(parsedDemo.teams, demo);
+          const demoTeamPlayers = await this.saveDemoTeamPlayers(
+            parsedDemo.players,
+            demoTeams
+          );
+        }
+      },
+    });
+  }
+
+  private async loadAndParseDemoInfo(
+    diskFile: DiskFile
+  ): Promise<ParsedDemoInfo> {
+    const buffer = await readFile(diskFile.filepath);
+    const demoInfoMessage = CDataGCCStrike15V2MatchInfo.decode(buffer);
+
+    const { matchid, matchtime, roundstatsall } = demoInfoMessage;
+
+    const steam64Ids =
+      roundstatsall[roundstatsall.length - 1]?.reservation?.accountIds.map(
+        (steam3Id) => new SteamID(`[U:1:${steam3Id}]`).getSteamID64()
+      ) ?? [];
+
+    return {
+      officialMatchId: matchid.toString(),
+      officialMatchTimestamp: DateTime.fromSeconds(matchtime).toISO(),
+      steam64Ids,
+    };
+  }
+
+  private async saveDemoInfo(
+    parsedDemoInfo: ParsedDemoInfo,
+    diskFile: DiskFile
+  ): Promise<DemoInfo> {
+    let savedDemoInfo = await this.prismaService.client.demoInfo.findUnique({
+      where: { id: parsedDemoInfo.officialMatchId },
+    });
+
+    if (!savedDemoInfo) {
+      savedDemoInfo = await this.prismaService.client.demoInfo.create({
+        data: {
+          id: parsedDemoInfo.officialMatchId,
+          matchTimestamp: parsedDemoInfo.officialMatchTimestamp,
+          steam64Ids: parsedDemoInfo.steam64Ids,
+          SourceDiskFile: { connect: { id: diskFile.id } },
         },
+      });
+    }
+
+    return savedDemoInfo;
+  }
+
+  private async loadAndParseDemo(diskFile: DiskFile): Promise<ParsedMatch> {
+    const buffer = await readFile(diskFile.filepath);
+    return this.parseDemoFromBuffer(buffer);
+  }
+
+  private async parseDemoFromBuffer(buffer: Buffer): Promise<ParsedMatch> {
+    return new Promise(async (resolve, reject) => {
+      const demoFile = new DemoFile();
+
+      const teams = new Map<DemoTeamSide, ParsedMatchTeam>();
+      const players = new Map<string, ParsedMatchPlayer>();
+
+      demoFile.gameEvents.on("event", ({ name: eventName, event }) => {
+        switch (eventName) {
+          case "round_start": {
+            // Record players who manage to start a round
+            demoFile.players.forEach((demoPlayer) => {
+              const recordedPlayer = players.get(demoPlayer.steam64Id);
+              if (demoPlayer.isFakePlayer || !!recordedPlayer) {
+                return;
+              }
+              players.set(
+                demoPlayer.steam64Id,
+                new ParsedMatchPlayer(
+                  demoPlayer.steam64Id,
+                  demoPlayer.name,
+                  getPlayerFinalTeamLetter(demoFile, demoPlayer)
+                )
+              );
+            });
+            break;
+          }
+          case "player_disconnect": {
+            const player = players.get(event.player?.steam64Id);
+            if (!player) return;
+            player.updateScore(extractPlayerScore(event.player));
+          }
+        }
       });
 
-    // Parse .dem.info files
-    this.unparsedDemoFileObservable
-      .pipe(
-        filter(({ demoFile: { filepath } }) => filepath.endsWith(".dem.info"))
-      )
-      .subscribe({
-        next: async ({ demoFile }) => {
-          const info = await this.loadAndParseDemoInfoFile(demoFile);
-          const infoRecord = await this.saveMatchInfo({ demoFile, info });
-          await this.connectMatchToInfo({ demoFile, infoRecord });
-          this.logger.verbose(`finished processing ${demoFile.filepath}`);
-        },
+      demoFile.on("error", (error) => {
+        console.error("Error during parsing:", error);
+        reject(error);
       });
+
+      demoFile.on("end", async (event) => {
+        if (event.error) {
+          console.error("Error during parsing:", event.error);
+          reject(event.error);
+        }
+
+        demoFile.players.forEach((demoPlayer) => {
+          const player = players.get(demoPlayer.steam64Id);
+          if (!player) return;
+          player.updateScore(extractPlayerScore(demoPlayer));
+        });
+
+        const {
+          header: { clientName, serverName, mapName, playbackTicks },
+        } = demoFile;
+
+        demoFile.teams.forEach((team) => {
+          const teamSide = getDemoTeamSide(team.teamNumber);
+          if (teamSide === DemoTeamSide.UNKNOWN) return;
+
+          const { scoreFirstHalf, scoreSecondHalf, score: scoreTotal } = team;
+          teams.set(teamSide, {
+            scoreFirstHalf,
+            scoreSecondHalf,
+            scoreTotal,
+          });
+        });
+
+        const playerSteamIds = Array.from(players.keys()).sort();
+
+        // TODO: Review composite key idea
+        const compositeKey: string[] = [
+          clientName,
+          serverName,
+          mapName,
+          `${playbackTicks}`,
+          ...playerSteamIds,
+        ];
+
+        const hash = createHash("sha256");
+        compositeKey.forEach((value) => hash.write(value.trim()));
+
+        resolve({
+          id: hash.digest("hex"),
+          clientName,
+          serverName,
+          mapName,
+          teams,
+          players,
+        });
+      });
+
+      try {
+        demoFile.parse(buffer);
+      } catch (e) {
+        this.logger.error(e);
+        reject(null);
+      }
+    });
   }
 
   async parseUnprocessed() {
@@ -139,109 +270,101 @@ export class ParsingService {
     };
   }
 
-  private async loadAndParseDemoFile(
-    demoFile: dbDemoFile
-  ): Promise<ParsedMatch | null> {
-    return new Promise(async (resolve, reject) => {
-      const demoFileToParse = demoFile;
-      try {
-        const buffer = await readFile(demoFileToParse.filepath);
-        const demoFile = new DemoFile();
+  private async saveDemo(
+    parsedDemo: ParsedMatch,
+    diskFile: DiskFile
+  ): Promise<Demo> {
+    return this.prismaService.client.demo.upsert({
+      where: { id: parsedDemo.id },
+      create: {
+        id: parsedDemo.id,
+        clientName: parsedDemo.clientName,
+        serverName: parsedDemo.serverName,
+        mapName: parsedDemo.mapName,
+        SourceDiskFile: { connect: { id: diskFile.id } },
+      },
+      update: {
+        clientName: parsedDemo.clientName,
+        serverName: parsedDemo.serverName,
+        mapName: parsedDemo.mapName,
+        SourceDiskFile: { connect: { id: diskFile.id } },
+      },
+    });
+  }
 
-        const teams = new Map<TeamLetter, ParsedMatchTeam>();
-        const players = new Map<string, ParsedMatchPlayer>();
-
-        demoFile.gameEvents.on("event", ({ name: eventName, event }) => {
-          switch (eventName) {
-            case "round_start": {
-              // Record players who manage to start a round
-              demoFile.players.forEach((demoPlayer) => {
-                const recordedPlayer = players.get(demoPlayer.steam64Id);
-                if (demoPlayer.isFakePlayer || !!recordedPlayer) {
-                  return;
-                }
-                players.set(
-                  demoPlayer.steam64Id,
-                  new ParsedMatchPlayer(
-                    demoPlayer.steam64Id,
-                    demoPlayer.name,
-                    getPlayerFinalTeamLetter(demoFile, demoPlayer)
-                  )
-                );
-              });
-              break;
-            }
-            case "player_disconnect": {
-              const player = players.get(event.player?.steam64Id);
-              if (!player) return;
-              player.updateScore(extractPlayerScore(event.player));
-            }
-          }
-        });
-
-        demoFile.on("error", (error) => {
-          console.error("Error during parsing:", error);
-          reject(error);
-        });
-
-        demoFile.on("end", async (event) => {
-          if (event.error) {
-            console.error("Error during parsing:", event.error);
-            reject(event.error);
-          }
-
-          demoFile.players.forEach((demoPlayer) => {
-            const player = players.get(demoPlayer.steam64Id);
-            if (!player) return;
-            player.updateScore(extractPlayerScore(demoPlayer));
-          });
-
-          const {
-            header: { clientName, serverName, mapName, playbackTicks },
-          } = demoFile;
-
-          demoFile.teams.forEach((team) => {
-            const teamLetter = getTeamLetter(team.teamNumber);
-            if (teamLetter === "???") return;
-
-            const { scoreFirstHalf, scoreSecondHalf, score: scoreTotal } = team;
-            teams.set(teamLetter, {
+  private async saveDemoTeams(
+    teamsMap: Map<DemoTeamSide, ParsedMatchTeam>,
+    sourceDemo: Demo
+  ): Promise<DemoTeam[]> {
+    return Promise.all(
+      Array.from(teamsMap).map(
+        ([teamSide, { scoreFirstHalf, scoreSecondHalf, scoreTotal }]) =>
+          this.prismaService.client.demoTeam.upsert({
+            where: { side_demoId: { demoId: sourceDemo.id, side: teamSide } },
+            create: {
+              side: teamSide,
               scoreFirstHalf,
               scoreSecondHalf,
               scoreTotal,
-            });
-          });
+              Demo: { connect: { id: sourceDemo.id } },
+            },
+            update: {
+              scoreFirstHalf,
+              scoreSecondHalf,
+              scoreTotal,
+            },
+          })
+      )
+    );
+  }
 
-          const playerSteamIds = Array.from(players.keys()).sort();
+  private async saveDemoTeamPlayers(
+    playersMap: Map<string, ParsedMatchPlayer>,
+    demoTeams: DemoTeam[]
+  ): Promise<DemoTeamPlayer[]> {
+    return Promise.all(
+      Array.from(playersMap.values()).map((player) => {
+        const demoTeam = demoTeams.find(
+          (demoTeam) => demoTeam.side === player.team
+        );
+        if (!demoTeam) return null;
 
-          // TODO: Review composite key idea
-          const compositeKey: string[] = [
-            clientName,
-            serverName,
-            mapName,
-            `${playbackTicks}`,
-            ...playerSteamIds,
-          ];
-
-          const hash = createHash("sha256");
-          compositeKey.forEach((value) => hash.write(value.trim()));
-
-          resolve({
-            id: hash.digest("hex"),
-            clientName,
-            serverName,
-            mapName,
-            teams,
-            players,
-          });
+        return this.prismaService.client.demoTeamPlayer.upsert({
+          where: {
+            steam64Id_demoTeamSide_demoTeamDemoId: {
+              demoTeamDemoId: demoTeam.demoId,
+              demoTeamSide: player.team,
+              steam64Id: player.steam64Id,
+            },
+          },
+          create: {
+            displayName: player.displayName,
+            kills: player.kills,
+            assists: player.assists,
+            deaths: player.deaths,
+            headshotPercentage:
+              typeof player.headshotPercentage === "number"
+                ? new Prisma.Decimal(player.headshotPercentage)
+                : null,
+            DemoTeam: {
+              connect: {
+                side_demoId: { demoId: demoTeam.demoId, side: player.team },
+              },
+            },
+          },
+          update: {
+            displayName: player.displayName,
+            kills: player.kills,
+            assists: player.assists,
+            deaths: player.deaths,
+            headshotPercentage:
+              typeof player.headshotPercentage === "number"
+                ? new Prisma.Decimal(player.headshotPercentage)
+                : null,
+          },
         });
-
-        demoFile.parse(buffer);
-      } catch (e) {
-        this.logger.error(e);
-        resolve(null);
-      }
-    });
+      })
+    ).then((demoTeamPlayers) => demoTeamPlayers.filter(notNullish));
   }
 
   private async saveMatch(props: {
